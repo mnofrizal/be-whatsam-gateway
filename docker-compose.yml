@@ -1,0 +1,134 @@
+# Docker Compose for WhatsApp Gateway PaaS Backend Development
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: whatsapp-gateway-postgres
+    environment:
+      POSTGRES_DB: whatsapp_gateway
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - whatsapp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d whatsapp_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: whatsapp-gateway-redis
+    command: redis-server --appendonly yes --requirepass redispassword
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - whatsapp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: whatsapp-gateway-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - whatsapp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Adminer - Database Management UI
+  adminer:
+    image: adminer:latest
+    container_name: whatsapp-gateway-adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - whatsapp-network
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  # Redis Commander - Redis Management UI
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: whatsapp-gateway-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:redispassword
+    ports:
+      - "8081:8081"
+    networks:
+      - whatsapp-network
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  # Backend API (for production, in development run locally)
+  # backend:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: whatsapp-gateway-backend
+  #   environment:
+  #     NODE_ENV: development
+  #     PORT: 8000
+  #     DATABASE_URL: postgresql://postgres:password@postgres:5432/whatsapp_gateway
+  #     REDIS_URL: redis://:redispassword@redis:6379
+  #     JWT_SECRET: your-super-secret-jwt-key-change-in-production
+  #     WORKER_AUTH_TOKEN: worker-secret-token-change-in-production
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./logs:/app/logs
+  #   networks:
+  #     - whatsapp-network
+  #   restart: unless-stopped
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+# Networks
+networks:
+  whatsapp-network:
+    driver: bridge
+    name: whatsapp-gateway-network
+
+# Volumes
+volumes:
+  postgres_data:
+    name: whatsapp-gateway-postgres-data
+  redis_data:
+    name: whatsapp-gateway-redis-data
+  minio_data:
+    name: whatsapp-gateway-minio-data
