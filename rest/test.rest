@@ -1,1 +1,177 @@
-http://localhost:8000/health
+### WhatsApp Gateway PaaS - System Testing Endpoints
+### Base URL: http://localhost:8000/api/v1
+
+@baseUrl = http://localhost:8000/api/v1
+@contentType = application/json
+
+### Variables (Update these with actual values)
+@adminJwtToken = your-admin-jwt-token-here
+
+###
+# Basic Health Check
+GET {{baseUrl}}/health
+
+###
+# Detailed Health Check
+GET {{baseUrl}}/health/detailed
+
+###
+# System Metrics (if enabled)
+GET {{baseUrl}}/metrics
+
+###
+# API Version Info
+GET {{baseUrl}}/version
+
+###
+# System Status
+GET {{baseUrl}}/status
+
+###
+# Database Connection Test
+GET {{baseUrl}}/health/database
+
+###
+# Redis Connection Test
+GET {{baseUrl}}/health/redis
+
+###
+# Worker Connectivity Test
+GET {{baseUrl}}/health/workers
+
+###
+# Load Test Endpoint (Admin only)
+GET {{baseUrl}}/test/load
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Performance Test (Admin only)
+GET {{baseUrl}}/test/performance
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Memory Usage Test (Admin only)
+GET {{baseUrl}}/test/memory
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Database Performance Test (Admin only)
+GET {{baseUrl}}/test/database-performance
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Redis Performance Test (Admin only)
+GET {{baseUrl}}/test/redis-performance
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# API Rate Limit Test
+GET {{baseUrl}}/test/rate-limit
+
+###
+# Authentication Test
+POST {{baseUrl}}/test/auth
+Content-Type: {{contentType}}
+
+{
+  "testType": "jwt",
+  "token": "test-token"
+}
+
+###
+# Validation Test
+POST {{baseUrl}}/test/validation
+Content-Type: {{contentType}}
+
+{
+  "email": "invalid-email",
+  "phone": "invalid-phone",
+  "required_field": ""
+}
+
+###
+# Error Handling Test
+GET {{baseUrl}}/test/error/400
+
+###
+# Server Error Test
+GET {{baseUrl}}/test/error/500
+
+###
+# Timeout Test
+GET {{baseUrl}}/test/timeout
+
+###
+# Large Payload Test
+POST {{baseUrl}}/test/large-payload
+Content-Type: {{contentType}}
+
+{
+  "data": "This is a test with large payload data that should be processed correctly by the server without any issues or timeouts",
+  "array": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "nested": {
+    "level1": {
+      "level2": {
+        "level3": "deep nesting test"
+      }
+    }
+  }
+}
+
+###
+# Concurrent Request Test (Admin only)
+POST {{baseUrl}}/test/concurrent
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "requests": 100,
+  "endpoint": "/health",
+  "method": "GET"
+}
+
+###
+# Security Headers Test
+GET {{baseUrl}}/test/security-headers
+
+###
+# CORS Test
+OPTIONS {{baseUrl}}/test/cors
+Origin: http://localhost:3000
+
+###
+# Content-Type Test
+POST {{baseUrl}}/test/content-type
+Content-Type: application/xml
+
+<test>
+  <message>XML content test</message>
+</test>
+
+###
+# File Upload Test
+POST {{baseUrl}}/test/upload
+Content-Type: multipart/form-data
+
+# Note: Use form-data for file upload
+# file: [select a small test file]
+# description: Test file upload
+
+###
+# WebSocket Connection Test (if supported)
+GET {{baseUrl}}/test/websocket
+
+###
+# Environment Test (Admin only)
+GET {{baseUrl}}/test/environment
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Configuration Test (Admin only)
+GET {{baseUrl}}/test/config
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Cleanup Test Data (Admin only)
+DELETE {{baseUrl}}/test/cleanup
+Authorization: Bearer {{adminJwtToken}}

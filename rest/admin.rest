@@ -1,0 +1,251 @@
+### WhatsApp Gateway PaaS - Admin Management Endpoints
+### Base URL: http://localhost:8000/api/v1
+
+@baseUrl = http://localhost:8000/api/v1
+@contentType = application/json
+
+### Variables (Update these with actual values)
+@adminJwtToken = your-admin-jwt-token-here
+@userId = user-123
+@sessionId = session-456
+@workerId = worker-001
+
+###
+# Admin Dashboard Overview
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# System Analytics
+GET {{baseUrl}}/admin/analytics
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# System Analytics with Time Range
+GET {{baseUrl}}/admin/analytics?period=7d&metrics=users,sessions,messages
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Get All Users (Admin)
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Get Users with Pagination and Search
+GET {{baseUrl}}/admin/users?page=1&limit=20&search=john&tier=PRO&status=active
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Get User Details (Admin)
+GET {{baseUrl}}/admin/users/{{userId}}
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Update User (Admin)
+PUT {{baseUrl}}/admin/users/{{userId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "tier": "MAX",
+  "isActive": true,
+  "role": "CUSTOMER"
+}
+
+###
+# Suspend User (Admin)
+POST {{baseUrl}}/admin/users/{{userId}}/suspend
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "reason": "Policy violation",
+  "duration": "7d"
+}
+
+###
+# Unsuspend User (Admin)
+POST {{baseUrl}}/admin/users/{{userId}}/unsuspend
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Delete User (Admin)
+DELETE {{baseUrl}}/admin/users/{{userId}}
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Get All Sessions (Admin)
+GET {{baseUrl}}/admin/sessions
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Get Sessions with Filters
+GET {{baseUrl}}/admin/sessions?status=CONNECTED&userId={{userId}}&workerId={{workerId}}&page=1&limit=50
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Get Session Details (Admin)
+GET {{baseUrl}}/admin/sessions/{{sessionId}}
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Force Disconnect Session (Admin)
+POST {{baseUrl}}/admin/sessions/{{sessionId}}/disconnect
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "reason": "Administrative action"
+}
+
+###
+# Migrate Session to Different Worker (Admin)
+POST {{baseUrl}}/admin/sessions/{{sessionId}}/migrate
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "targetWorkerId": "worker-002",
+  "reason": "Load balancing"
+}
+
+###
+# Delete Session (Admin)
+DELETE {{baseUrl}}/admin/sessions/{{sessionId}}
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# System Health Check (Admin)
+GET {{baseUrl}}/admin/health
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Detailed System Health (Admin)
+GET {{baseUrl}}/admin/health/detailed
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# System Logs (Admin)
+GET {{baseUrl}}/admin/logs
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# System Logs with Filters
+GET {{baseUrl}}/admin/logs?level=error&service=worker&startDate=2024-01-01&endDate=2024-01-31&limit=100
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Enable System Maintenance Mode (Admin)
+POST {{baseUrl}}/admin/maintenance
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "enabled": true,
+  "message": "Scheduled maintenance in progress",
+  "estimatedDuration": "2h"
+}
+
+###
+# Disable System Maintenance Mode (Admin)
+POST {{baseUrl}}/admin/maintenance
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "enabled": false
+}
+
+###
+# Get System Configuration (Admin)
+GET {{baseUrl}}/admin/config
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Update System Configuration (Admin)
+PUT {{baseUrl}}/admin/config
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "rateLimits": {
+    "BASIC": {
+      "messagesPerHour": 100,
+      "apiCallsPerHour": 1000
+    },
+    "PRO": {
+      "messagesPerHour": 1000,
+      "apiCallsPerHour": 10000
+    },
+    "MAX": {
+      "messagesPerHour": 10000,
+      "apiCallsPerHour": 100000
+    }
+  },
+  "workerDefaults": {
+    "maxSessions": 50,
+    "healthCheckInterval": 30000
+  }
+}
+
+###
+# Export Users Report (Admin)
+GET {{baseUrl}}/admin/reports/users?format=csv&startDate=2024-01-01&endDate=2024-01-31
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Export Sessions Report (Admin)
+GET {{baseUrl}}/admin/reports/sessions?format=json&tier=PRO&status=CONNECTED
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Export Messages Report (Admin)
+GET {{baseUrl}}/admin/reports/messages?format=csv&period=30d&groupBy=user
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Export System Metrics Report (Admin)
+GET {{baseUrl}}/admin/reports/metrics?format=json&period=7d&metrics=cpu,memory,sessions
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Get Audit Logs (Admin)
+GET {{baseUrl}}/admin/audit
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Get Audit Logs with Filters
+GET {{baseUrl}}/admin/audit?action=user_update&userId={{userId}}&startDate=2024-01-01&limit=50
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# System Backup Status (Admin)
+GET {{baseUrl}}/admin/backup/status
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Trigger System Backup (Admin)
+POST {{baseUrl}}/admin/backup/create
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "type": "full",
+  "description": "Manual backup before maintenance"
+}
+
+###
+# List System Backups (Admin)
+GET {{baseUrl}}/admin/backup/list
+Authorization: Bearer {{adminJwtToken}}
+
+###
+# Restore from Backup (Admin)
+POST {{baseUrl}}/admin/backup/restore
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminJwtToken}}
+
+{
+  "backupId": "backup-20240115-123456",
+  "confirmRestore": true
+}

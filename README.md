@@ -10,13 +10,13 @@ A scalable, multi-tenant WhatsApp Gateway Platform-as-a-Service (PaaS) backend b
 - **High Availability**: Session migration between workers with minimal downtime
 - **Comprehensive APIs**: RESTful APIs for dashboard and external integrations
 - **Real-time Monitoring**: Worker health metrics and system analytics
-- **Tier-based Limits**: Free, Pro, and Premium tiers with usage restrictions
+- **Tier-based Limits**: BASIC, Pro, and MAX tiers with usage restrictions
 - **Webhook Support**: Real-time event notifications to external systems
 
 ## 🏗️ Architecture
 
 ```
-Customer/Admin → Frontend Dashboard → Backend API Gateway → WhatsApp Workers → Baileys → WhatsApp
+User/Administrator → Frontend Dashboard → Backend API Gateway → WhatsApp Workers → Baileys → WhatsApp
 ```
 
 ### Core Components
@@ -121,6 +121,7 @@ curl http://localhost:8000/api/v1/health
 ### Interactive Documentation
 
 When running in development mode, visit:
+
 - API Documentation: `http://localhost:8000/api/v1/docs`
 
 ## 🗄️ Database Management
@@ -175,11 +176,11 @@ HGETALL workers
 
 ## 📊 Service Tiers
 
-| Tier | Price | Sessions | Messages/Hour | API Calls/Hour |
-|------|-------|----------|---------------|----------------|
-| **Free** | $0 | 1 | 100 | 1,000 |
-| **Pro** | $29/month | 5 | 1,000 | 10,000 |
-| **Premium** | $99/month | 20 | 10,000 | 100,000 |
+| Tier      | Price     | Sessions | Messages/Hour | API Calls/Hour |
+| --------- | --------- | -------- | ------------- | -------------- |
+| **Basic** | $0        | 1        | 100           | 1,000          |
+| **Pro**   | $29/month | 5        | 1,000         | 10,000         |
+| **Max**   | $99/month | 20       | 10,000        | 100,000        |
 
 ## 🔒 Authentication
 
@@ -366,9 +367,10 @@ Key environment variables (see `.env.example` for complete list):
 ### Rate Limiting
 
 Configure rate limits per tier in environment variables:
-- `FREE_TIER_MAX_MESSAGES_PER_HOUR`
+
+- `BASIC_TIER_MAX_MESSAGES_PER_HOUR`
 - `PRO_TIER_MAX_MESSAGES_PER_HOUR`
-- `PREMIUM_TIER_MAX_MESSAGES_PER_HOUR`
+- `MAX_TIER_MAX_MESSAGES_PER_HOUR`
 
 ## 🤝 Contributing
 
@@ -425,28 +427,31 @@ curl -H "X-API-Key: <api-key>" \
 ### Common Issues
 
 1. **Database Connection Failed**
+
    ```bash
    # Check if PostgreSQL is running
    docker-compose ps postgres
-   
+
    # Check database logs
    docker-compose logs postgres
    ```
 
 2. **Redis Connection Failed**
+
    ```bash
    # Check if Redis is running
    docker-compose ps redis
-   
+
    # Test Redis connection
    docker exec -it whatsapp-gateway-redis redis-cli ping
    ```
 
 3. **Worker Registration Failed**
+
    ```bash
    # Check worker authentication token
    echo $WORKER_AUTH_TOKEN
-   
+
    # Check worker endpoint accessibility
    curl http://worker-endpoint:8001/health
    ```
@@ -454,6 +459,7 @@ curl -H "X-API-Key: <api-key>" \
 ### Debug Mode
 
 Enable debug mode in `.env`:
+
 ```bash
 DEBUG_MODE=true
 LOG_LEVEL=debug
@@ -472,24 +478,28 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🎯 Roadmap
 
 ### Week 1-2: Foundation ✅
+
 - [x] Project setup and basic Express server
 - [x] Database schema and migrations
 - [x] Authentication system
 - [x] Basic middleware and error handling
 
 ### Week 3-4: Core Features (In Progress)
+
 - [ ] Worker management and discovery
 - [ ] Session orchestration
 - [ ] Load balancing implementation
 - [ ] Request proxy system
 
 ### Week 5-6: Advanced Features
+
 - [ ] Session migration
 - [ ] Webhook system
 - [ ] Analytics and monitoring
 - [ ] Admin dashboard APIs
 
 ### Week 7: Production Ready
+
 - [ ] Security hardening
 - [ ] Performance optimization
 - [ ] Comprehensive testing

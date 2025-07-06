@@ -1,0 +1,111 @@
+### WhatsApp Gateway PaaS - Session Management Endpoints
+### Base URL: http://localhost:8000/api/v1
+
+@baseUrl = http://localhost:8000/api/v1
+@contentType = application/json
+
+### Variables (Update these with actual values)
+@jwtToken = your-jwt-token-here
+@sessionId = your-session-id-here
+@phoneNumber = 6281234567890@s.whatsapp.net
+
+###
+# List User Sessions
+GET {{baseUrl}}/sessions
+Authorization: Bearer {{jwtToken}}
+
+###
+# List Sessions with Status Filter
+GET {{baseUrl}}/sessions?status=CONNECTED&limit=10&offset=0
+Authorization: Bearer {{jwtToken}}
+
+###
+# Create New Session
+POST {{baseUrl}}/sessions
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwtToken}}
+
+{
+  "name": "My WhatsApp Session",
+  "sessionId": "custom-session-id"
+}
+
+###
+# Get Session Details
+GET {{baseUrl}}/sessions/{{sessionId}}
+Authorization: Bearer {{jwtToken}}
+
+###
+# Get Session QR Code
+GET {{baseUrl}}/sessions/{{sessionId}}/qr
+Authorization: Bearer {{jwtToken}}
+
+###
+# Get Session Status
+GET {{baseUrl}}/sessions/{{sessionId}}/status
+Authorization: Bearer {{jwtToken}}
+
+###
+# Send Text Message
+POST {{baseUrl}}/sessions/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwtToken}}
+
+{
+  "to": "{{phoneNumber}}",
+  "type": "text",
+  "message": "Hello from WhatsApp Gateway!"
+}
+
+###
+# Send Image Message
+POST {{baseUrl}}/sessions/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwtToken}}
+
+{
+  "to": "{{phoneNumber}}",
+  "type": "image",
+  "media": "base64-encoded-image-data",
+  "caption": "Check out this image!"
+}
+
+###
+# Send Document Message
+POST {{baseUrl}}/sessions/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwtToken}}
+
+{
+  "to": "{{phoneNumber}}",
+  "type": "document",
+  "media": "base64-encoded-document-data",
+  "filename": "document.pdf",
+  "caption": "Important document"
+}
+
+###
+# Get Message History
+GET {{baseUrl}}/sessions/{{sessionId}}/messages
+Authorization: Bearer {{jwtToken}}
+
+###
+# Get Message History with Filters
+GET {{baseUrl}}/sessions/{{sessionId}}/messages?limit=20&offset=0&direction=OUTBOUND&status=DELIVERED
+Authorization: Bearer {{jwtToken}}
+
+###
+# Get Message History with Date Range
+GET {{baseUrl}}/sessions/{{sessionId}}/messages?from=2024-01-01T00:00:00Z&to=2024-01-02T00:00:00Z
+Authorization: Bearer {{jwtToken}}
+
+###
+# Restart Session
+POST {{baseUrl}}/sessions/{{sessionId}}/restart
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwtToken}}
+
+###
+# Delete Session
+DELETE {{baseUrl}}/sessions/{{sessionId}}
+Authorization: Bearer {{jwtToken}}

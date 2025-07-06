@@ -1,187 +1,362 @@
-// User Routes - MVP Pattern
-import express from 'express';
-import { asyncHandler } from '../middleware/error-handler.js';
-import { sessionLimiter } from '../middleware/rate-limit.js';
+// User Routes - User management endpoints
+import express from "express";
+import UserController from "../controllers/user.controller.js";
+import { sessionLimiter } from "../middleware/rate-limit.js";
+import { authenticateJWT } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// GET /api/v1/users/profile - Get User Profile
-router.get('/profile', asyncHandler(async (req, res) => {
-  // Will be implemented in Week 2 with UserController
-  res.status(501).json({
-    success: false,
-    message: 'Get user profile endpoint - Implementation coming in Week 2',
-    endpoint: 'GET /api/v1/users/profile',
-    requiresAuth: true,
-    expectedResponse: {
-      user: {
-        id: 'user-uuid',
-        email: 'user@example.com',
-        role: 'CUSTOMER',
-        tier: 'FREE',
-        isActive: true,
-        createdAt: '2024-01-01T00:00:00Z',
-        lastLoginAt: '2024-01-01T00:00:00Z'
-      }
-    }
-  });
-}));
+// Apply JWT authentication to all user routes
+router.use(authenticateJWT);
 
-// PUT /api/v1/users/profile - Update User Profile
-router.put('/profile', sessionLimiter, asyncHandler(async (req, res) => {
-  // Will be implemented in Week 2 with UserController
-  res.status(501).json({
-    success: false,
-    message: 'Update user profile endpoint - Implementation coming in Week 2',
-    endpoint: 'PUT /api/v1/users/profile',
-    requiresAuth: true,
-    expectedBody: {
-      email: 'newemail@example.com', // optional
-      currentPassword: 'currentPassword', // required if changing password
-      newPassword: 'newPassword' // optional
-    }
-  });
-}));
+/**
+ * @swagger
+ * /api/v1/users/profile:
+ *   get:
+ *     summary: Get user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *                         tier:
+ *                           type: string
+ *                         isActive:
+ *                           type: boolean
+ *                         lastLoginAt:
+ *                           type: string
+ *                           format: date-time
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/profile", UserController.getUserProfile);
 
-// GET /api/v1/users/api-keys - List User API Keys
-router.get('/api-keys', asyncHandler(async (req, res) => {
-  // Will be implemented in Week 2 with UserController
-  res.status(501).json({
-    success: false,
-    message: 'List API keys endpoint - Implementation coming in Week 2',
-    endpoint: 'GET /api/v1/users/api-keys',
-    requiresAuth: true,
-    expectedResponse: {
-      apiKeys: [
-        {
-          id: 'key-uuid',
-          name: 'Main API Key',
-          key: 'wg_****************************',
-          isActive: true,
-          lastUsed: '2024-01-01T00:00:00Z',
-          createdAt: '2024-01-01T00:00:00Z',
-          expiresAt: null
-        }
-      ]
-    }
-  });
-}));
+/**
+ * @swagger
+ * /api/v1/users/profile:
+ *   put:
+ *     summary: Update user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 minLength: 2
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+router.put("/profile", sessionLimiter, UserController.updateUserProfile);
 
-// POST /api/v1/users/api-keys - Create New API Key
-router.post('/api-keys', sessionLimiter, asyncHandler(async (req, res) => {
-  // Will be implemented in Week 2 with UserController
-  res.status(501).json({
-    success: false,
-    message: 'Create API key endpoint - Implementation coming in Week 2',
-    endpoint: 'POST /api/v1/users/api-keys',
-    requiresAuth: true,
-    expectedBody: {
-      name: 'My New API Key',
-      expiresAt: '2025-01-01T00:00:00Z' // optional
-    }
-  });
-}));
+/**
+ * @swagger
+ * /api/v1/users/api-keys:
+ *   get:
+ *     summary: Get user's API keys
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: API keys retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     apiKeys:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           key:
+ *                             type: string
+ *                           sessionId:
+ *                             type: string
+ *                           isActive:
+ *                             type: boolean
+ *                           lastUsed:
+ *                             type: string
+ *                             format: date-time
+ *                           expiresAt:
+ *                             type: string
+ *                             format: date-time
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                     total:
+ *                       type: integer
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/api-keys", UserController.getUserApiKeys);
 
-// DELETE /api/v1/users/api-keys/:id - Delete API Key
-router.delete('/api-keys/:id', sessionLimiter, asyncHandler(async (req, res) => {
-  // Will be implemented in Week 2 with UserController
-  res.status(501).json({
-    success: false,
-    message: 'Delete API key endpoint - Implementation coming in Week 2',
-    endpoint: 'DELETE /api/v1/users/api-keys/:id',
-    requiresAuth: true,
-    params: {
-      id: 'API key UUID'
-    }
-  });
-}));
+/**
+ * @swagger
+ * /api/v1/users/api-keys/{id}:
+ *   delete:
+ *     summary: Delete API key
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: API key deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: API key not found
+ */
+router.delete("/api-keys/:id", sessionLimiter, UserController.deleteApiKey);
 
-// GET /api/v1/users/usage - Get Usage Statistics
-router.get('/usage', asyncHandler(async (req, res) => {
-  // Will be implemented in Week 2 with UserController
-  res.status(501).json({
-    success: false,
-    message: 'Get usage statistics endpoint - Implementation coming in Week 2',
-    endpoint: 'GET /api/v1/users/usage',
-    requiresAuth: true,
-    queryParams: {
-      period: '24h|7d|30d', // optional, defaults to 24h
-      sessionId: 'session-uuid' // optional, filter by session
-    },
-    expectedResponse: {
-      usage: {
-        period: '24h',
-        sessions: {
-          total: 2,
-          active: 1,
-          inactive: 1
-        },
-        messages: {
-          sent: 150,
-          received: 75,
-          failed: 2
-        },
-        apiCalls: {
-          total: 500,
-          remaining: 500
-        },
-        rateLimits: {
-          messages: {
-            current: 150,
-            limit: 1000,
-            remaining: 850,
-            resetTime: '2024-01-01T01:00:00Z'
-          },
-          apiCalls: {
-            current: 500,
-            limit: 10000,
-            remaining: 9500,
-            resetTime: '2024-01-01T01:00:00Z'
-          }
-        }
-      }
-    }
-  });
-}));
+/**
+ * @swagger
+ * /api/v1/users/usage:
+ *   get:
+ *     summary: Get user usage statistics
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [24h, 7d, 30d]
+ *           default: 24h
+ *       - in: query
+ *         name: sessionId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Usage statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     usage:
+ *                       type: object
+ *                       properties:
+ *                         period:
+ *                           type: string
+ *                         totalMessages:
+ *                           type: integer
+ *                         totalSessions:
+ *                           type: integer
+ *                         totalApiCalls:
+ *                           type: integer
+ *                         messagesByType:
+ *                           type: object
+ *                         dailyBreakdown:
+ *                           type: array
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/usage", UserController.getUserUsage);
 
-// GET /api/v1/users/tier - Get User Tier Information
-router.get('/tier', asyncHandler(async (req, res) => {
-  // Will be implemented in Week 2 with UserController
-  res.status(501).json({
-    success: false,
-    message: 'Get user tier endpoint - Implementation coming in Week 2',
-    endpoint: 'GET /api/v1/users/tier',
-    requiresAuth: true,
-    expectedResponse: {
-      tier: {
-        current: 'FREE',
-        limits: {
-          sessions: 1,
-          messagesPerHour: 100,
-          apiCallsPerHour: 1000
-        },
-        features: [
-          'Basic WhatsApp messaging',
-          'Single session support',
-          'Community support'
-        ],
-        upgradeTo: {
-          PRO: {
-            price: '$29/month',
-            sessions: 5,
-            messagesPerHour: 1000,
-            apiCallsPerHour: 10000
-          },
-          PREMIUM: {
-            price: '$99/month',
-            sessions: 20,
-            messagesPerHour: 10000,
-            apiCallsPerHour: 100000
-          }
-        }
-      }
-    }
-  });
-}));
+/**
+ * @swagger
+ * /api/v1/users/tier:
+ *   get:
+ *     summary: Get user tier information
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Tier information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tier:
+ *                       type: object
+ *                       properties:
+ *                         current:
+ *                           type: string
+ *                         limits:
+ *                           type: object
+ *                         features:
+ *                           type: object
+ *                         usage:
+ *                           type: object
+ *                         upgradeOptions:
+ *                           type: array
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/tier", UserController.getUserTier);
+
+/**
+ * @swagger
+ * /api/v1/users/sessions:
+ *   get:
+ *     summary: Get user sessions
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Sessions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sessions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           phoneNumber:
+ *                             type: string
+ *                           status:
+ *                             type: string
+ *                           lastSeenAt:
+ *                             type: string
+ *                             format: date-time
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         offset:
+ *                           type: integer
+ *                         hasMore:
+ *                           type: boolean
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/sessions", UserController.getUserSessions);
+
+/**
+ * @swagger
+ * /api/v1/users/deactivate:
+ *   post:
+ *     summary: Deactivate user account
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Account deactivated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/deactivate", sessionLimiter, UserController.deactivateAccount);
 
 export default router;

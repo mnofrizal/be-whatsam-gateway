@@ -33,7 +33,6 @@ out/
 
 # Prisma
 prisma/dev.db
-prisma/migrations/
 
 # Docker
 docker-data/

@@ -1,0 +1,366 @@
+### Worker API Testing
+### Base URL: http://localhost:8000/api/v1
+
+### Variables
+@baseUrl = http://localhost:8000/api/v1
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3MTQ0ZDUwMi1lNzIyLTRjYWEtYjBkYy1iYmEzYTQ1N2I3ZGEiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUxNzU2OTQ3LCJleHAiOjE3NTIzNjE3NDcsImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.ANdGyojNdcfI2uS6WM2of46PybAeStA_XsM4x0avfkw
+@workerToken = worker-secret-token-change-in-production
+
+
+### ========================================
+### WORKER SELF-REGISTRATION (Internal APIs)
+### ========================================
+
+### 1. Worker Self-Registration
+POST {{baseUrl}}/workers/register
+Content-Type: application/json
+Authorization: Bearer {{workerToken}}
+
+{
+  "workerId": "worker-001",
+  "endpoint": "http://localhost:8001",
+  "maxSessions": 50,
+  "description": "Primary worker node"
+}
+
+### 2. Worker Heartbeat Update
+PUT {{baseUrl}}/workers/worker-localhost-8001/heartbeat
+Content-Type: application/json
+Authorization: Bearer {{workerToken}}
+
+{
+  "status": "ONLINE",
+  "cpuUsage": 45.5,
+  "memoryUsage": 67.8,
+  "uptime": 3600,
+  "messageCount": 1250,
+  "sessions": {
+    "total": 24,
+    "connected": 20,
+    "disconnected": 2,
+    "qr_required": 2,
+    "reconnecting": 0,
+    "error": 0
+  }
+}
+
+### ========================================
+### ADMIN WORKER MANAGEMENT (JWT Required)
+### ========================================
+
+### 3. Get All Workers (Admin)
+GET {{baseUrl}}/workers
+Authorization: Bearer {{adminToken}}
+
+### 4. Add Worker Manually with Custom ID (Admin)
+POST {{baseUrl}}/workers
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "workerId": "custom-name-worker",
+  "endpoint": "http://localhost:8001",
+  "maxSessions": 30,
+  "description": "External VPS worker with custom ID"
+}
+
+### 4b. Add Worker with Auto-Generated ID (Admin)
+POST {{baseUrl}}/workers
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "endpoint": "http://localhost:8002",
+  "maxSessions": 25,
+  "description": "Worker with auto-generated ID from endpoint"
+}
+
+### 5. Get Specific Worker Details (Admin)
+GET {{baseUrl}}/workers/worker-001
+Authorization: Bearer {{adminToken}}
+
+### 6. Update Worker Configuration (Admin)
+PUT {{baseUrl}}/workers/worker-001
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "maxSessions": 75,
+  "description": "Updated primary worker with increased capacity",
+  "version": "1.2.0",
+  "environment": "PRODUCTION"
+}
+
+### 7. Remove Worker (Admin)
+DELETE {{baseUrl}}/workers/worker-localhost-8001
+Authorization: Bearer {{adminToken}}
+
+### 8. Get Worker Statistics (Admin)
+GET {{baseUrl}}/workers/statistics
+Authorization: Bearer {{adminToken}}
+
+### 9. Test Worker Connectivity by Endpoint (Admin)
+POST {{baseUrl}}/workers/test
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "endpoint": "http://localhost:8001"
+}
+
+### 9b. Test Specific Worker Connectivity by ID (Admin)
+POST {{baseUrl}}/workers/worker-001/test
+Authorization: Bearer {{adminToken}}
+
+### 10. Trigger Manual Health Check (Admin)
+POST {{baseUrl}}/workers/health-check
+Authorization: Bearer {{adminToken}}
+
+# Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "summary": {
+#       "total": 2,
+#       "healthy": 1,
+#       "failed": 1,
+#       "checkedAt": "2024-01-15T10:30:00Z"
+#     },
+#     "results": [
+#       {
+#         "workerId": "worker-001",
+#         "endpoint": "http://localhost:8001",
+#         "status": "healthy",
+#         "checkedAt": "2024-01-15T10:30:00Z"
+#       },
+#       {
+#         "workerId": "worker-002",
+#         "endpoint": "http://localhost:8002",
+#         "status": "failed",
+#         "error": "Connection timeout",
+#         "checkedAt": "2024-01-15T10:30:00Z"
+#       }
+#     ]
+#   },
+#   "message": "Health check completed: 1 healthy, 1 failed"
+# }
+
+### ========================================
+### VALIDATION TESTS
+### ========================================
+
+### 11. Test Invalid Endpoint Format (Worker Registration)
+POST {{baseUrl}}/workers/register
+Content-Type: application/json
+Authorization: Bearer {{workerToken}}
+
+{
+  "workerId": "worker-invalid-1",
+  "endpoint": "invalid-url-format",
+  "maxSessions": 50,
+  "description": "Test invalid endpoint format"
+}
+
+### 12. Test Invalid Protocol (Worker Registration)
+POST {{baseUrl}}/workers/register
+Content-Type: application/json
+Authorization: Bearer {{workerToken}}
+
+{
+  "workerId": "worker-invalid-2",
+  "endpoint": "ftp://192.168.1.100:8001",
+  "maxSessions": 50,
+  "description": "Test invalid protocol"
+}
+
+### 13. Test Missing Required Fields (Worker Registration)
+POST {{baseUrl}}/workers/register
+Content-Type: application/json
+Authorization: Bearer {{workerToken}}
+
+{
+  "maxSessions": 50,
+  "description": "Missing workerId and endpoint"
+}
+
+### 14. Test Duplicate Endpoint (Admin Add Worker) - Should Return 409 Conflict
+POST {{baseUrl}}/workers
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "endpoint": "http://192.168.1.100:8001",
+  "maxSessions": 30,
+  "description": "This should fail with 409 Conflict if worker-192-168-1-100-8001 already exists"
+}
+
+### 15. Test Invalid Endpoint Format (Admin Add Worker)
+POST {{baseUrl}}/workers
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "endpoint": "not-a-valid-url",
+  "maxSessions": 30,
+  "description": "Invalid endpoint format test"
+}
+### ========================================
+### EXAMPLE RESPONSES
+### ========================================
+
+### Worker Registration Response:
+# {
+#   "success": true,
+#   "message": "Worker registered successfully",
+#   "data": {
+#     "id": "worker-001",
+#     "endpoint": "http://192.168.1.100:8001",
+#     "status": "ONLINE",
+#     "maxSessions": 50,
+#     "sessionCount": 0,
+#     "cpuUsage": 0,
+#     "memoryUsage": 0,
+#     "description": "Primary worker node",
+#     "lastHeartbeat": "2024-01-15T10:30:00Z",
+#     "createdAt": "2024-01-15T10:30:00Z"
+#   }
+# }
+
+### Get Workers Response:
+# {
+#   "success": true,
+#   "message": "Workers retrieved successfully",
+#   "data": {
+#     "workers": [
+#       {
+#         "id": "worker-001",
+#         "endpoint": "http://192.168.1.100:8001",
+#         "status": "ONLINE",
+#         "sessionCount": 25,
+#         "maxSessions": 50,
+#         "cpuUsage": 45.5,
+#         "memoryUsage": 67.8,
+#         "lastHeartbeat": "2024-01-15T10:30:00Z",
+#         "activeSessionCount": 25,
+#         "sessions": [
+#           {
+#             "id": "user123-personal",
+#             "name": "Personal WhatsApp",
+#             "status": "CONNECTED",
+#             "phoneNumber": "+6281234567890"
+#           }
+#         ]
+#       }
+#     ],
+#     "total": 1,
+#     "online": 1,
+#     "offline": 0
+#   }
+# }
+
+### Worker Statistics Response:
+# {
+#   "success": true,
+#   "message": "Worker statistics retrieved successfully",
+#   "data": {
+#     "total": 3,
+#     "totalCapacity": 150,
+#     "totalActiveSessions": 67,
+#     "averageCpuUsage": 52.3,
+#     "averageMemoryUsage": 68.9,
+#     "statusBreakdown": {
+#       "online": 2,
+#       "offline": 1
+#     },
+#     "utilizationRate": "44.67"
+#   }
+# }
+
+### ========================================
+### ERROR RESPONSES
+### ========================================
+
+### 401 Unauthorized (Missing/Invalid Token):
+# {
+#   "success": false,
+#   "error": "Worker authentication token required. Use: Authorization: Bearer <token>"
+# }
+
+### 403 Forbidden (Invalid Worker Token):
+# {
+#   "success": false,
+#   "error": "Invalid worker authentication token"
+# }
+
+### 404 Not Found (Worker doesn't exist):
+# {
+#   "success": false,
+#   "error": "Worker not found"
+# }
+
+### ========================================
+### VALIDATION ERROR RESPONSES
+### ========================================
+
+### 400 Bad Request (Invalid Endpoint Format):
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "endpoint",
+#       "message": "Invalid endpoint URL format"
+#     }
+#   ]
+# }
+
+### 400 Bad Request (Invalid Protocol):
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "endpoint",
+#       "message": "Endpoint must use http:// or https:// protocol"
+#     }
+#   ]
+# }
+
+### 400 Bad Request (Missing Required Fields):
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "workerId",
+#       "message": "Worker ID is required"
+#     },
+#     {
+#       "field": "endpoint",
+#       "message": "Endpoint is required"
+#     }
+#   ]
+# }
+
+### 409 Conflict (Duplicate Endpoint):
+# {
+#   "success": false,
+#   "error": "Worker with this endpoint already exists"
+# }
+
+### 409 Conflict (Worker ID Already Exists with Different Endpoint):
+# {
+#   "success": false,
+#   "error": "Worker ID already exists with different endpoint"
+# }
+### 400 Bad Request (Invalid endpoint):
+# {
+#   "success": false,
+#   "error": "Invalid endpoint format. Expected: http://host:port"
+# }
+
+### 409 Conflict (Worker connectivity test failed):
+# {
+#   "success": false,
+#   "error": "Worker connectivity test failed: Connection refused"
+# }

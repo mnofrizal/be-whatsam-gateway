@@ -87,18 +87,18 @@ Customer/Admin → Frontend Dashboard → Backend API Gateway → WhatsApp Worke
 
 ### Business Success
 
-- **Multi-Tier Pricing:** Free (1 session), Pro ($29/5 sessions), Premium ($99/20 sessions)
+- **Multi-Tier Pricing:** Basic (1 session), Pro ($29/5 sessions), Max ($99/20 sessions)
 - **Enterprise Features:** Dedicated workers, SLA guarantees, priority support
 - **Developer Adoption:** Clean APIs that developers actually want to use
 - **Operational Efficiency:** Minimal manual intervention required
 
 ## 🔄 Service Tiers
 
-| Tier        | Price     | Sessions    | Resources             | SLA          |
-| ----------- | --------- | ----------- | --------------------- | ------------ |
-| **Free**    | $0        | 1 session   | Shared pod (50 users) | Best effort  |
-| **Pro**     | $29/month | 5 sessions  | Shared pod (10 users) | 99% uptime   |
-| **Premium** | $99/month | 20 sessions | Dedicated pod         | 99.9% uptime |
+| Tier      | Price     | Sessions    | Resources             | SLA          |
+| --------- | --------- | ----------- | --------------------- | ------------ |
+| **BASIC** | $0        | 1 session   | Shared pod (50 users) | Best effort  |
+| **Pro**   | $29/month | 5 sessions  | Shared pod (10 users) | 99% uptime   |
+| **MAX**   | $99/month | 20 sessions | Dedicated pod         | 99.9% uptime |
 
 ## 🚀 Competitive Advantages
 

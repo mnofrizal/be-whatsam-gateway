@@ -1,0 +1,252 @@
+### User Management API Tests
+### Base URL: http://localhost:8000/api/v1
+
+### Variables
+@baseUrl = http://localhost:8000/api/v1
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ZTIwMjMwYS0zNGEyLTQ2ODUtODFjMC01MjIxNGZiODc0YmQiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUxNzEzMDI3LCJleHAiOjE3NTIzMTc4MjcsImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.Q3FNteYbz-I53OOkkqRIlN7LU7kWkV6T9X1sogyitlE
+
+### 1. Get User Profile
+GET {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+
+### 2. Update User Profile - Name Only
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Updated Test User"
+}
+
+### 3. Update User Profile - Email Only
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "updated.test@example.com"
+}
+
+### 4. Update User Profile - Change Password
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword123"
+}
+
+### 5. Update User Profile - Complete Update
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "John Doe Updated",
+  "email": "john.updated@example.com",
+  "currentPassword": "password123",
+  "newPassword": "newpassword456"
+}
+
+### 6. Get User API Keys
+GET {{baseUrl}}/users/api-keys
+Authorization: Bearer {{token}}
+
+### 7. Delete API Key (replace with actual API key ID)
+DELETE {{baseUrl}}/users/api-keys/replace-with-actual-id
+Authorization: Bearer {{token}}
+
+### 10. Get User Usage Statistics - Default (24h)
+GET {{baseUrl}}/users/usage
+Authorization: Bearer {{token}}
+
+### 11. Get User Usage Statistics - 7 days
+GET {{baseUrl}}/users/usage?period=7d
+Authorization: Bearer {{token}}
+
+### 12. Get User Usage Statistics - 30 days
+GET {{baseUrl}}/users/usage?period=30d
+Authorization: Bearer {{token}}
+
+### 13. Get User Usage Statistics - Filtered by Session
+GET {{baseUrl}}/users/usage?period=24h&sessionId=test-session-001
+Authorization: Bearer {{token}}
+
+### 14. Get User Tier Information
+GET {{baseUrl}}/users/tier
+Authorization: Bearer {{token}}
+
+### 15. Get User Sessions - Default
+GET {{baseUrl}}/users/sessions
+Authorization: Bearer {{token}}
+
+### 16. Get User Sessions - With Pagination
+GET {{baseUrl}}/users/sessions?limit=5&offset=0
+Authorization: Bearer {{token}}
+
+### 17. Get User Sessions - Filter by Status
+GET {{baseUrl}}/users/sessions?status=CONNECTED&limit=10
+Authorization: Bearer {{token}}
+
+### 18. Deactivate Account (BE CAREFUL - This will deactivate the account!)
+# POST {{baseUrl}}/users/deactivate
+# Authorization: Bearer {{token}}
+# Content-Type: application/json
+# 
+# {
+#   "password": "password123"
+# }
+
+### Error Test Cases
+
+### 19. Get Profile - No Token
+GET {{baseUrl}}/users/profile
+
+### 20. Update Profile - Invalid Email
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "invalid-email"
+}
+
+### 21. Update Profile - Short Name
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "A"
+}
+
+### 22. Update Profile - Weak Password
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "123"
+}
+
+### 23. Get Usage - Invalid Period
+GET {{baseUrl}}/users/usage?period=invalid
+Authorization: Bearer {{token}}
+
+### 27. Delete Non-existent API Key
+DELETE {{baseUrl}}/users/api-keys/non-existent-id
+Authorization: Bearer {{token}}
+
+### 28. Deactivate Account - Wrong Password
+POST {{baseUrl}}/users/deactivate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "password": "wrongpassword"
+}
+
+### 29. Deactivate Account - Missing Password
+POST {{baseUrl}}/users/deactivate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+### API Key Authentication Tests
+### Note: API keys are now auto-generated when sessions are created
+### Use actual API key from session creation for testing
+
+### 30. Test API Key Authentication - Get Profile (This will fail as profile requires JWT)
+# GET {{baseUrl}}/users/profile
+# X-API-Key: your-actual-api-key-here
+
+### Rate Limiting Tests
+
+### 31. Test Rate Limiting - Multiple Profile Updates
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Rate Limit Test 1"
+}
+
+###
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Rate Limit Test 2"
+}
+
+###
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Rate Limit Test 3"
+}
+
+### Performance Tests
+
+### 32. Concurrent Profile Requests
+GET {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+
+### Integration Tests
+
+### 33. Full User Workflow
+# Step 1: Get initial profile
+GET {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+
+###
+# Step 2: Update profile
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Integration Test User"
+}
+
+###
+# Step 3: Get updated profile
+GET {{baseUrl}}/users/profile
+Authorization: Bearer {{token}}
+
+###
+# Step 4: Get tier information
+GET {{baseUrl}}/users/tier
+Authorization: Bearer {{token}}
+
+###
+# Step 5: Get usage statistics
+GET {{baseUrl}}/users/usage
+Authorization: Bearer {{token}}
+
+###
+# Step 6: Get sessions
+GET {{baseUrl}}/users/sessions
+Authorization: Bearer {{token}}
+
+### Notes:
+# 1. Make sure to login first using auth.rest to get a valid token
+# 2. Replace placeholder values (like API key IDs) with actual values from responses
+# 3. Some tests require existing sessions or API keys to work properly
+# 4. Be careful with the deactivate account endpoint - it will actually deactivate the account
+# 5. Rate limiting tests should be run in sequence to test the limits
+# 6. API key authentication tests may fail for JWT-only endpoints (by design)

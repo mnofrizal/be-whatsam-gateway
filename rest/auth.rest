@@ -1,0 +1,73 @@
+### WhatsApp Gateway PaaS - Authentication Endpoints
+### Base URL: http://localhost:8000/api/v1
+
+@baseUrl = http://localhost:8000/api/v1
+@contentType = application/json
+
+### Variables (Update these with actual values)
+@userName = Test User
+@userEmail = admin@whatsapp-gateway.com
+@userPassword = AdminPassword123!
+@jwtToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3MTQ0ZDUwMi1lNzIyLTRjYWEtYjBkYy1iYmEzYTQ1N2I3ZGEiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUxNzU2OTQ3LCJleHAiOjE3NTIzNjE3NDcsImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.ANdGyojNdcfI2uS6WM2of46PybAeStA_XsM4x0avfkw
+@refreshToken = your-refresh-token-here
+@resetToken = your-reset-token-here
+
+###
+# User Registration
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "name": "{{userName}}",
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+###
+# User Login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+###
+# User Logout
+POST {{baseUrl}}/auth/logout
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwtToken}}
+
+###
+# Refresh JWT Token
+POST {{baseUrl}}/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+# Forgot Password
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: {{contentType}}
+
+{
+  "email": "{{userEmail}}"
+}
+
+###
+# Reset Password
+POST {{baseUrl}}/auth/reset-password
+Content-Type: {{contentType}}
+
+{
+  "token": "{{resetToken}}",
+  "newPassword": "newSecurePassword123"
+}
+
+###
+# Get Current User Profile
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{jwtToken}}

@@ -2,7 +2,7 @@
 
 ## 🏗️ Overall System Architecture
 
-### High-Level Architecture
+### High-Level Hybrid Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -10,19 +10,37 @@
 │  Dashboard      │◄──►│  Gateway        │◄──►│  Workers        │
 │  (Next.js)      │    │  (Node.js)      │    │  (Baileys)      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │  Storage Layer  │
-                       │ PostgreSQL +    │
-                       │ Redis + MinIO   │
-                       └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │ Backend Storage │    │ Worker Storage  │
+                       │ PostgreSQL +    │    │ Local DB +      │
+                       │ Redis + MinIO   │    │ MinIO + Cache   │
+                       └─────────────────┘    └─────────────────┘
 ```
 
-### Service Communication Flow
+### Hybrid Data Management Flow
 
 ```
 Customer/Admin → Frontend Dashboard → Backend API Gateway → WhatsApp Workers → Baileys → WhatsApp
+                                    ↕                      ↕
+                            Business Data              Operational Data
+                         (Users, Sessions Meta,      (Messages, Session State,
+                          Billing, Analytics)         Media Files, QR Codes)
+```
+
+### Domain-Driven Data Ownership
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   BACKEND       │    │   WORKER        │    │   BAILEYS       │
+│ (Business Data) │◄──►│ (Session Data)  │◄──►│ (WhatsApp API)  │
+│                 │    │                 │    │                 │
+│ • Users         │    │ • Messages      │    │ • QR Codes      │
+│ • Sessions Meta │    │ • Session State │    │ • Connections   │
+│ • Billing       │    │ • Media Files   │    │ • Auth Tokens   │
+│ • Analytics     │    │ • Local Cache   │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ## 📁 Backend Source Code Architecture
@@ -32,21 +50,21 @@ Customer/Admin → Frontend Dashboard → Backend API Gateway → WhatsApp Worke
 ```
 src/
 ├── controllers/         # HTTP request handlers
-│   ├── auth.js         # Authentication endpoints
-│   ├── user.js         # User management
-│   ├── session.js      # Session operations
-│   ├── worker.js       # Worker management
-│   ├── admin.js        # Admin operations
-│   ├── webhook.js      # Webhook handling
-│   └── health.js       # Health check
+│   ├── auth.controller.js    # Authentication endpoints
+│   ├── user.controller.js    # User management
+│   ├── session.controller.js # Session operations
+│   ├── worker.controller.js  # Worker management
+│   ├── admin.controller.js   # Admin operations
+│   ├── webhook.controller.js # Webhook handling
+│   └── health.controller.js  # Health check
 ├── services/           # Business logic layer
-│   ├── auth.js         # Authentication service
-│   ├── user.js         # User service
-│   ├── session.js      # Session orchestration
-│   ├── worker.js       # Worker management service
-│   ├── load-balancer.js # Load balancing logic
-│   ├── proxy.js        # Request proxy to workers
-│   └── notification.js # Notification service
+│   ├── auth.service.js       # Authentication service
+│   ├── user.service.js       # User service
+│   ├── session.service.js    # Session orchestration
+│   ├── worker.service.js     # Worker management service
+│   ├── load-balancer.service.js # Load balancing logic
+│   ├── proxy.service.js      # Request proxy to workers
+│   └── notification.service.js # Notification service
 ├── middleware/         # Express middleware
 │   ├── auth.js         # JWT authentication
 │   ├── rbac.js         # Role-based access control
@@ -54,11 +72,6 @@ src/
 │   ├── rate-limit.js   # Rate limiting
 │   ├── error-handler.js # Error handling
 │   └── logger.js       # Request logging
-├── models/             # Data models
-│   ├── user.js         # User model
-│   ├── session.js      # Session model
-│   ├── worker.js       # Worker model
-│   └── message.js      # Message model
 ├── utils/              # Utility functions
 │   ├── logger.js       # Winston logger
 │   ├── redis.js        # Redis utilities
@@ -66,13 +79,13 @@ src/
 │   ├── api-key.js      # API key generation
 │   └── helpers.js      # General utilities
 ├── routes/             # API route definitions
-│   ├── auth.js         # Authentication routes
-│   ├── user.js         # User routes
-│   ├── session.js      # Session routes
-│   ├── worker.js       # Worker routes
-│   ├── admin.js        # Admin routes
-│   ├── api.js          # External API routes
-│   └── index.js        # Route aggregator
+│   ├── auth.routes.js        # Authentication routes
+│   ├── user.routes.js        # User routes
+│   ├── session.routes.js     # Session routes
+│   ├── worker.routes.js      # Worker routes
+│   ├── admin.routes.js       # Admin routes
+│   ├── api.routes.js         # External API routes
+│   └── index.js              # Route aggregator
 ├── config/             # Configuration files
 │   ├── database.js     # Database configuration
 │   ├── redis.js        # Redis configuration
@@ -86,47 +99,123 @@ src/
 
 ## 🔄 Key Design Patterns
 
-### 1. API Gateway Pattern
+### 1. Hybrid Data Management Pattern
+
+- **Purpose:** Domain-driven data ownership between Backend and Workers
+- **Implementation:** Backend owns business data, Workers own operational data
+- **Benefits:** Scalability, reliability, clear separation of concerns
+
+### 2. API Gateway Pattern
 
 - **Purpose:** Central entry point for all client requests
 - **Implementation:** Backend routes requests to appropriate workers
 - **Benefits:** Load balancing, authentication, rate limiting in one place
 
-### 2. Service Layer Pattern
+### 3. Two-Phase Session Management Pattern
+
+- **Purpose:** Separate session declaration from connection action
+- **Implementation:** Phase 1: Create session card, Phase 2: Connect to WhatsApp
+- **Benefits:** Better UX, clearer error handling, improved reliability
+
+### 4. Service Layer Pattern
 
 - **Purpose:** Separate business logic from HTTP handling
 - **Implementation:** Controllers call services, services handle business logic
 - **Benefits:** Testable, reusable business logic
 
-### 3. Repository Pattern (via Prisma)
+### 5. Repository Pattern (via Prisma)
 
 - **Purpose:** Abstract database operations
 - **Implementation:** Prisma ORM handles database interactions
 - **Benefits:** Database-agnostic code, easy testing with mocks
 
-### 4. Proxy Pattern
+### 6. Proxy Pattern
 
 - **Purpose:** Forward requests to appropriate workers
 - **Implementation:** ProxyService routes requests based on session mapping
 - **Benefits:** Transparent worker communication, failover handling
 
+### 7. Webhook Pattern
+
+- **Purpose:** Async communication between Workers and Backend
+- **Implementation:** Workers report status changes via webhook callbacks
+- **Benefits:** No timeout issues, better error handling, scalable
+
 ## 🗄️ Data Architecture
 
-### Database Schema (PostgreSQL)
+### Hybrid Data Ownership Matrix
+
+| Data Type            | Owner   | Storage            | Responsibility                     | Sync Method    |
+| -------------------- | ------- | ------------------ | ---------------------------------- | -------------- |
+| **User Accounts**    | Backend | PostgreSQL         | Authentication, billing, tiers     | N/A            |
+| **Session Metadata** | Backend | PostgreSQL         | Routing, status, worker assignment | Real-time      |
+| **API Keys**         | Backend | PostgreSQL         | Authentication, rate limiting      | N/A            |
+| **Worker Registry**  | Backend | PostgreSQL + Redis | Health, load balancing             | Heartbeat      |
+| **Usage Records**    | Backend | PostgreSQL         | Billing, analytics, compliance     | Batch sync     |
+| **System Logs**      | Backend | PostgreSQL         | Audit, troubleshooting             | Real-time      |
+| **Messages**         | Worker  | MinIO + Cache      | Chat history, delivery status      | Event-driven   |
+| **Session State**    | Worker  | MinIO + Local      | Baileys internal state             | Status updates |
+| **Media Files**      | Worker  | MinIO              | Images, documents, audio           | On-demand      |
+| **QR Codes**         | Worker  | Memory/Cache       | Temporary authentication           | Real-time      |
+
+### Backend Database Schema (PostgreSQL)
 
 ```
-Users (id, email, passwordHash, role, tier, apiKey, isActive, timestamps)
+Users (id, email, passwordHash, role, tier, isActive, timestamps)
   ├── Sessions (id, userId, workerId, name, phoneNumber, status, qrCode, timestamps)
-  │   ├── Messages (id, sessionId, direction, fromNumber, toNumber, messageType, content, status, timestamp)
-  │   └── ApiKeys (id, userId, sessionId, key, name, isActive, lastUsed, expiresAt)
-  └── ApiKeys (id, userId, key, name, isActive, lastUsed, expiresAt)
+  │   ├── ApiKeys (id, sessionId, key, name, isActive, lastUsed, expiresAt)
+  │   └── UsageRecords (id, userId, sessionId, apiKeyId, usageCount, billingDate)
 
 Workers (id, endpoint, status, sessionCount, maxSessions, cpuUsage, memoryUsage, lastHeartbeat, timestamps)
   ├── Sessions (foreign key relationship)
   └── WorkerMetrics (id, workerId, cpuUsage, memoryUsage, sessionCount, messageCount, timestamp)
+
+SystemLogs (id, level, service, message, details, userId, sessionId, workerId, timestamp)
+Webhooks (id, sessionId, url, events, secret, isActive, lastDelivery, failureCount)
+WebhookDeliveries (id, webhookId, event, payload, status, responseCode, attempts, nextRetry)
 ```
 
-### Redis Data Structure
+### Worker MinIO Storage Structure
+
+```
+// Worker stores data in MinIO buckets
+MinIO Buckets:
+├── sessions/
+│   ├── user123-personal/
+│   │   ├── auth_info_baileys/     # Baileys auth state files
+│   │   ├── session-data.json      # Session metadata
+│   │   └── messages/              # Message history files
+│   │       ├── 2024-01-15.json    # Daily message logs
+│   │       └── 2024-01-16.json
+│   └── user456-business/
+│       ├── auth_info_baileys/
+│       ├── session-data.json
+│       └── messages/
+├── media/
+│   ├── user123-personal/
+│   │   ├── images/
+│   │   ├── documents/
+│   │   └── audio/
+│   └── user456-business/
+└── temp/
+    ├── qr-codes/                  # Temporary QR codes
+    └── uploads/                   # Temporary file uploads
+
+// Worker in-memory cache for active sessions
+sessionCache: {
+  "user123-personal": {
+    sessionId: "user123-personal",
+    userId: "user123",
+    status: "connected",
+    phoneNumber: "+6281234567890",
+    lastActivity: "2024-01-15T10:30:00Z",
+    sock: baileysSockInstance,     // Active Baileys connection
+    messageQueue: []               // Pending messages
+  }
+}
+```
+
+### Redis Data Structure (Backend)
 
 ```
 session_routing: {
@@ -149,6 +238,27 @@ rate_limits: {
 }
 ```
 
+### Data Synchronization Strategies
+
+#### 1. Real-time Sync (Critical Data)
+
+- **Session Status:** Worker → Backend (immediate)
+- **Connection Events:** Worker → Backend (immediate)
+- **Error Notifications:** Worker → Backend (immediate)
+- **QR Code Updates:** Worker → Backend (webhook callback)
+
+#### 2. Batch Sync (Analytics Data)
+
+- **Message Statistics:** Worker → Backend (hourly)
+- **Usage Metrics:** Worker → Backend (daily)
+- **Performance Data:** Worker → Backend (hourly)
+
+#### 3. On-demand Sync (Historical Data)
+
+- **Message History:** Backend ← Worker (when requested)
+- **Media Files:** Backend ← Worker (when requested)
+- **Session Logs:** Backend ← Worker (for troubleshooting)
+
 ## 🔌 API Architecture
 
 ### Authentication Layers
@@ -167,9 +277,9 @@ rate_limits: {
 
 ```
 Tier-based Limits:
-- FREE: 100 messages/hour, 1000 API calls/hour
+- BASIC: 100 messages/hour, 1000 API calls/hour
 - PRO: 1000 messages/hour, 10000 API calls/hour
-- PREMIUM: 10000 messages/hour, 100000 API calls/hour
+- MAX: 10000 messages/hour, 100000 API calls/hour
 
 Global Limits:
 - 1000 requests/15min per IP
@@ -229,7 +339,7 @@ Worker Selection Priority:
    - Return user data + token
 
 2. API Key Usage:
-   - Include X-API-Key header
+   - Include Authorization: Bearer {apiKey} header
    - Validate key in database
    - Check expiration and permissions
    - Update last used timestamp

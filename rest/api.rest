@@ -1,0 +1,390 @@
+### WhatsApp Gateway PaaS - External API Endpoints
+### Base URL: http://localhost:8000/api/v1
+
+@baseUrl = http://localhost:8000/api/v1
+@contentType = application/json
+
+### Variables (Update these with actual values)
+@apiKey = your-api-key-here
+@sessionId = session-456
+@phoneNumber = 6281234567890
+@messageId = msg_12345
+@webhookId = webhook_789
+
+###
+# Send Text Message
+POST {{baseUrl}}/api/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{phoneNumber}}@s.whatsapp.net",
+  "type": "text",
+  "message": "Hello from WhatsApp Gateway API!"
+}
+
+###
+# Send Text Message with Options
+POST {{baseUrl}}/api/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{phoneNumber}}@s.whatsapp.net",
+  "type": "text",
+  "message": "Hello with options!",
+  "options": {
+    "linkPreview": false,
+    "quoted": "msg_previous_id"
+  }
+}
+
+###
+# Send Image Message
+POST {{baseUrl}}/api/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{phoneNumber}}@s.whatsapp.net",
+  "type": "image",
+  "media": {
+    "url": "https://example.com/image.jpg",
+    "caption": "Check out this image!"
+  }
+}
+
+###
+# Send Image Message with Base64
+POST {{baseUrl}}/api/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{phoneNumber}}@s.whatsapp.net",
+  "type": "image",
+  "media": {
+    "data": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...",
+    "caption": "Image from base64"
+  }
+}
+
+###
+# Send Document
+POST {{baseUrl}}/api/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{phoneNumber}}@s.whatsapp.net",
+  "type": "document",
+  "media": {
+    "url": "https://example.com/document.pdf",
+    "filename": "important-document.pdf",
+    "caption": "Please review this document"
+  }
+}
+
+###
+# Send Audio Message
+POST {{baseUrl}}/api/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{phoneNumber}}@s.whatsapp.net",
+  "type": "audio",
+  "media": {
+    "url": "https://example.com/audio.mp3",
+    "ptt": true
+  }
+}
+
+###
+# Send Video Message
+POST {{baseUrl}}/api/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{phoneNumber}}@s.whatsapp.net",
+  "type": "video",
+  "media": {
+    "url": "https://example.com/video.mp4",
+    "caption": "Check out this video!"
+  }
+}
+
+###
+# Send Location Message
+POST {{baseUrl}}/api/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{phoneNumber}}@s.whatsapp.net",
+  "type": "location",
+  "location": {
+    "latitude": -6.2088,
+    "longitude": 106.8456,
+    "name": "Jakarta, Indonesia",
+    "address": "Jakarta, DKI Jakarta, Indonesia"
+  }
+}
+
+###
+# Send Contact Message
+POST {{baseUrl}}/api/{{sessionId}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{phoneNumber}}@s.whatsapp.net",
+  "type": "contact",
+  "contact": {
+    "name": "John Doe",
+    "phone": "+6281234567890",
+    "email": "john@example.com"
+  }
+}
+
+###
+# Send Bulk Messages
+POST {{baseUrl}}/api/{{sessionId}}/send/bulk
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "messages": [
+    {
+      "to": "6281234567890@s.whatsapp.net",
+      "type": "text",
+      "message": "Hello User 1!"
+    },
+    {
+      "to": "6281234567891@s.whatsapp.net",
+      "type": "text",
+      "message": "Hello User 2!"
+    },
+    {
+      "to": "6281234567892@s.whatsapp.net",
+      "type": "image",
+      "media": {
+        "url": "https://example.com/image.jpg",
+        "caption": "Bulk image message"
+      }
+    }
+  ],
+  "options": {
+    "delay": 1000,
+    "batchSize": 10
+  }
+}
+
+###
+# Get Message Status
+GET {{baseUrl}}/api/{{sessionId}}/message/{{messageId}}/status
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Session Status
+GET {{baseUrl}}/api/{{sessionId}}/status
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Session QR Code
+GET {{baseUrl}}/api/{{sessionId}}/qr
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Session Info
+GET {{baseUrl}}/api/{{sessionId}}/info
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Contact Info
+GET {{baseUrl}}/api/{{sessionId}}/contact/{{phoneNumber}}
+Authorization: Bearer {{apiKey}}
+
+###
+# Check if Number is on WhatsApp
+GET {{baseUrl}}/api/{{sessionId}}/check/{{phoneNumber}}
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Chat List
+GET {{baseUrl}}/api/{{sessionId}}/chats
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Chat List with Pagination
+GET {{baseUrl}}/api/{{sessionId}}/chats?limit=20&offset=0
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Messages from Chat
+GET {{baseUrl}}/api/{{sessionId}}/chats/{{phoneNumber}}/messages
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Messages with Pagination
+GET {{baseUrl}}/api/{{sessionId}}/chats/{{phoneNumber}}/messages?limit=50&offset=0&before={{messageId}}
+Authorization: Bearer {{apiKey}}
+
+###
+# Mark Message as Read
+POST {{baseUrl}}/api/{{sessionId}}/chats/{{phoneNumber}}/read
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "messageId": "{{messageId}}"
+}
+
+###
+# Set Chat Presence (Typing)
+POST {{baseUrl}}/api/{{sessionId}}/chats/{{phoneNumber}}/presence
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "state": "composing"
+}
+
+###
+# Set Chat Presence (Online)
+POST {{baseUrl}}/api/{{sessionId}}/chats/{{phoneNumber}}/presence
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "state": "available"
+}
+
+###
+# Create Webhook
+POST {{baseUrl}}/api/webhooks
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "url": "https://your-server.com/webhook",
+  "events": ["message", "status", "qr", "ready"],
+  "secret": "your-webhook-secret"
+}
+
+###
+# List Webhooks
+GET {{baseUrl}}/api/webhooks
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Webhook Details
+GET {{baseUrl}}/api/webhooks/{{webhookId}}
+Authorization: Bearer {{apiKey}}
+
+###
+# Update Webhook
+PUT {{baseUrl}}/api/webhooks/{{webhookId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "url": "https://your-new-server.com/webhook",
+  "events": ["message", "status"],
+  "active": true
+}
+
+###
+# Test Webhook
+POST {{baseUrl}}/api/webhooks/{{webhookId}}/test
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "event": "test",
+  "data": {
+    "message": "This is a test webhook"
+  }
+}
+
+###
+# Delete Webhook
+DELETE {{baseUrl}}/api/webhooks/{{webhookId}}
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Usage Statistics
+GET {{baseUrl}}/api/usage
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Usage Statistics with Period
+GET {{baseUrl}}/api/usage?period=30d&breakdown=daily
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Account Limits
+GET {{baseUrl}}/api/limits
+Authorization: Bearer {{apiKey}}
+
+###
+# Download Media
+GET {{baseUrl}}/api/{{sessionId}}/media/{{messageId}}
+Authorization: Bearer {{apiKey}}
+
+###
+# Upload Media
+POST {{baseUrl}}/api/{{sessionId}}/media/upload
+Content-Type: multipart/form-data
+Authorization: Bearer {{apiKey}}
+
+# Note: Use form-data for file upload
+# file: [select file]
+# type: image
+
+###
+# Get Groups
+GET {{baseUrl}}/api/{{sessionId}}/groups
+Authorization: Bearer {{apiKey}}
+
+###
+# Get Group Info
+GET {{baseUrl}}/api/{{sessionId}}/groups/{{phoneNumber}}
+Authorization: Bearer {{apiKey}}
+
+###
+# Send Group Message
+POST {{baseUrl}}/api/{{sessionId}}/groups/{{phoneNumber}}/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "type": "text",
+  "message": "Hello group members!"
+}
+
+###
+# Add Participant to Group
+POST {{baseUrl}}/api/{{sessionId}}/groups/{{phoneNumber}}/participants
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "participants": ["6281234567890@s.whatsapp.net"]
+}
+
+###
+# Remove Participant from Group
+DELETE {{baseUrl}}/api/{{sessionId}}/groups/{{phoneNumber}}/participants
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "participants": ["6281234567890@s.whatsapp.net"]
+}
+
+###
+# Leave Group
+POST {{baseUrl}}/api/{{sessionId}}/groups/{{phoneNumber}}/leave
+Authorization: Bearer {{apiKey}}

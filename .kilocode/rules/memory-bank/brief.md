@@ -64,33 +64,28 @@
 backend/
 ├── src/
 │   ├── controllers/
-│   │   ├── auth.js              # Authentication (login/register)
-│   │   ├── user.js              # User management
-│   │   ├── session.js           # Session operations
-│   │   ├── worker.js            # Worker management
-│   │   ├── admin.js             # Admin operations
-│   │   ├── webhook.js           # Webhook handling
-│   │   └── health.js            # Health check
+│   │   ├── auth.controller.js        # Authentication (login/register)
+│   │   ├── user.controller.js        # User management
+│   │   ├── session.controller.js     # Session operations
+│   │   ├── worker.controller.js      # Worker management
+│   │   ├── admin.controller.js       # Admin operations
+│   │   ├── webhook.controller.js     # Webhook handling
+│   │   └── health.controller.js      # Health check
 │   ├── services/
-│   │   ├── auth.js              # Authentication service
-│   │   ├── user.js              # User service
-│   │   ├── session.js           # Session orchestration
-│   │   ├── worker.js            # Worker management service
-│   │   ├── load-balancer.js     # Load balancing logic
-│   │   ├── proxy.js             # Request proxy to workers
-│   │   └── notification.js      # Notification service
+│   │   ├── auth.service.js           # Authentication service
+│   │   ├── user.service.js           # User service
+│   │   ├── session.service.js        # Session orchestration
+│   │   ├── worker.service.js         # Worker management service
+│   │   ├── load-balancer.service.js  # Load balancing logic
+│   │   ├── proxy.service.js          # Request proxy to workers
+│   │   └── notification.service.js   # Notification service
 │   ├── middleware/
-│   │   ├── auth.js              # JWT authentication
-│   │   ├── rbac.js              # Role-based access control
-│   │   ├── validation.js        # Request validation
-│   │   ├── rate-limit.js        # Rate limiting
-│   │   ├── error-handler.js     # Error handling
-│   │   └── logger.js            # Request logging
-│   ├── models/
-│   │   ├── user.js              # User model
-│   │   ├── session.js           # Session model
-│   │   ├── worker.js            # Worker model
-│   │   └── message.js           # Message model
+│   │   ├── auth.js                   # JWT authentication
+│   │   ├── rbac.js                   # Role-based access control
+│   │   ├── validation.js             # Request validation
+│   │   ├── rate-limit.js             # Rate limiting
+│   │   ├── error-handler.js          # Error handling
+│   │   └── logger.js                 # Request logging
 │   ├── utils/
 │   │   ├── logger.js            # Winston logger
 │   │   ├── redis.js             # Redis utilities
@@ -98,13 +93,13 @@ backend/
 │   │   ├── api-key.js           # API key generation
 │   │   └── helpers.js           # General utilities
 │   ├── routes/
-│   │   ├── auth.js              # Authentication routes
-│   │   ├── user.js              # User routes
-│   │   ├── session.js           # Session routes
-│   │   ├── worker.js            # Worker routes
-│   │   ├── admin.js             # Admin routes
-│   │   ├── api.js               # External API routes
-│   │   └── index.js             # Route aggregator
+│   │   ├── auth.routes.js            # Authentication routes
+│   │   ├── user.routes.js            # User routes
+│   │   ├── session.routes.js         # Session routes
+│   │   ├── worker.routes.js          # Worker routes
+│   │   ├── admin.routes.js           # Admin routes
+│   │   ├── api.routes.js             # External API routes
+│   │   └── index.routes.js           # Route aggregator
 │   ├── config/
 │   │   ├── database.js          # Database configuration
 │   │   ├── redis.js             # Redis configuration
@@ -130,163 +125,277 @@ backend/
 ```prisma
 // prisma/schema.prisma
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
+// User Model - Core user management
 model User {
-  id          String    @id @default(uuid())
-  email       String    @unique
-  passwordHash String   @map("password_hash")
-  role        UserRole  @default(CUSTOMER)
-  tier        UserTier  @default(FREE)
-  apiKey      String    @unique @map("api_key")
-  isActive    Boolean   @default(true) @map("is_active")
-  lastLoginAt DateTime? @map("last_login_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+    id           String    @id @default(uuid())
+    name         String
+    email        String    @unique
+    passwordHash String    @map("password_hash")
+    role         UserRole  @default(USER)
+    tier         UserTier  @default(BASIC)
+    isActive     Boolean   @default(true) @map("is_active")
+    lastLoginAt  DateTime? @map("last_login_at")
+    createdAt    DateTime  @default(now()) @map("created_at")
+    updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  sessions    Session[]
-  apiKeys     ApiKey[]
+    // Relationships
+    sessions     Session[]
+    usageRecords UsageRecord[]
 
-  @@map("users")
+    @@map("users")
 }
 
+// Session Model - WhatsApp session management
 model Session {
-  id           String        @id
-  userId       String        @map("user_id")
-  workerId     String?       @map("worker_id")
-  name         String
-  phoneNumber  String?       @map("phone_number")
-  status       SessionStatus @default(INITIALIZING)
-  qrCode       String?       @map("qr_code")
-  lastSeenAt   DateTime?     @map("last_seen_at")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+    id          String        @id
+    userId      String        @map("user_id")
+    workerId    String?       @map("worker_id")
+    name        String
+    phoneNumber String?       @map("phone_number")
+    status      SessionStatus @default(DISCONNECTED)
+    qrCode      String?       @map("qr_code")
+    lastSeenAt  DateTime?     @map("last_seen_at")
+    createdAt   DateTime      @default(now()) @map("created_at")
+    updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  worker       Worker?       @relation(fields: [workerId], references: [id])
-  messages     Message[]
-  apiKeys      ApiKey[]
+    // Relationships
+    user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    worker       Worker?       @relation(fields: [workerId], references: [id])
+    messages     Message[]
+    apiKey       ApiKey? // 1:1 relationship - one session has one API key
+    usageRecords UsageRecord[]
+    webhook      Webhook? // 1:1 relationship - one session has one webhook
 
-  @@map("sessions")
+    @@map("sessions")
 }
 
+// Worker Model - Worker node management
 model Worker {
-  id            String       @id
-  endpoint      String       @unique
-  status        WorkerStatus @default(ONLINE)
-  sessionCount  Int          @default(0) @map("session_count")
-  maxSessions   Int          @default(50) @map("max_sessions")
-  cpuUsage      Float        @default(0) @map("cpu_usage")
-  memoryUsage   Float        @default(0) @map("memory_usage")
-  lastHeartbeat DateTime     @default(now()) @map("last_heartbeat")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+    id            String       @id
+    endpoint      String       @unique
+    status        WorkerStatus @default(ONLINE)
+    sessionCount  Int          @default(0) @map("session_count")
+    maxSessions   Int          @default(50) @map("max_sessions")
+    cpuUsage      Float        @default(0) @map("cpu_usage")
+    memoryUsage   Float        @default(0) @map("memory_usage")
+    lastHeartbeat DateTime     @default(now()) @map("last_heartbeat")
+    description   String?      @map("description")
+    createdAt     DateTime     @default(now()) @map("created_at")
+    updatedAt     DateTime     @updatedAt @map("updated_at")
 
-  sessions      Session[]
-  metrics       WorkerMetric[]
+    // Relationships
+    sessions Session[]
+    metrics  WorkerMetric[]
 
-  @@map("workers")
+    @@map("workers")
 }
 
+// ApiKey Model - API key management for external access
 model ApiKey {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  userId    String   @map("user_id")
-  sessionId String?  @map("session_id")
-  name      String
-  isActive  Boolean  @default(true) @map("is_active")
-  lastUsed  DateTime? @map("last_used")
-  createdAt DateTime @default(now()) @map("created_at")
-  expiresAt DateTime? @map("expires_at")
+    id        String    @id @default(uuid())
+    key       String    @unique
+    sessionId String    @unique @map("session_id") // Made unique for 1:1 relationship
+    name      String
+    isActive  Boolean   @default(true) @map("is_active")
+    lastUsed  DateTime? @map("last_used")
+    createdAt DateTime  @default(now()) @map("created_at")
+    expiresAt DateTime? @map("expires_at")
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session   Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    // Relationships
+    session      Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    usageRecords UsageRecord[]
 
-  @@map("api_keys")
+    @@map("api_keys")
 }
 
+// Message Model - Message logging and history
 model Message {
-  id          String        @id @default(uuid())
-  sessionId   String        @map("session_id")
-  direction   MessageDirection
-  fromNumber  String?       @map("from_number")
-  toNumber    String        @map("to_number")
-  messageType MessageType   @map("message_type")
-  content     String
-  mediaUrl    String?       @map("media_url")
-  status      MessageStatus @default(PENDING)
-  createdAt   DateTime      @default(now()) @map("created_at")
+    id           String           @id @default(uuid())
+    sessionId    String           @map("session_id")
+    direction    MessageDirection
+    fromNumber   String?          @map("from_number")
+    toNumber     String           @map("to_number")
+    messageType  MessageType      @map("message_type")
+    content      String
+    mediaUrl     String?          @map("media_url")
+    filename     String?          @map("filename")
+    caption      String?          @map("caption")
+    status       MessageStatus    @default(PENDING)
+    errorMessage String?          @map("error_message")
+    sentAt       DateTime?        @map("sent_at")
+    deliveredAt  DateTime?        @map("delivered_at")
+    readAt       DateTime?        @map("read_at")
+    createdAt    DateTime         @default(now()) @map("created_at")
 
-  session     Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    // Relationships
+    session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  @@map("messages")
+    @@map("messages")
 }
 
+// WorkerMetric Model - Worker performance metrics
 model WorkerMetric {
-  id          String   @id @default(uuid())
-  workerId    String   @map("worker_id")
-  cpuUsage    Float    @map("cpu_usage")
-  memoryUsage Float    @map("memory_usage")
-  sessionCount Int     @map("session_count")
-  messageCount Int     @map("message_count")
-  timestamp   DateTime @default(now())
+    id           String   @id @default(uuid())
+    workerId     String   @map("worker_id")
+    cpuUsage     Float    @map("cpu_usage")
+    memoryUsage  Float    @map("memory_usage")
+    sessionCount Int      @map("session_count")
+    messageCount Int      @map("message_count")
+    uptime       Int      @default(0) @map("uptime") // in seconds
+    timestamp    DateTime @default(now())
 
-  worker      Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+    // Relationships
+    worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
-  @@map("worker_metrics")
+    @@map("worker_metrics")
 }
 
+// Webhook Model - Webhook configuration per session
+model Webhook {
+    id           String    @id @default(uuid())
+    sessionId    String    @unique @map("session_id")
+    url          String
+    events       String[]  @map("events") // JSON array of event types
+    secret       String?   @map("secret")
+    isActive     Boolean   @default(true) @map("is_active")
+    lastDelivery DateTime? @map("last_delivery")
+    failureCount Int       @default(0) @map("failure_count")
+    createdAt    DateTime  @default(now()) @map("created_at")
+    updatedAt    DateTime  @updatedAt @map("updated_at")
+
+    // Relationships
+    session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+    @@map("webhooks")
+}
+
+// WebhookDelivery Model - Webhook delivery tracking
+model WebhookDelivery {
+    id           String        @id @default(uuid())
+    webhookId    String        @map("webhook_id")
+    event        String        @map("event")
+    payload      String        @map("payload") // JSON payload
+    status       WebhookStatus @default(PENDING)
+    responseCode Int?          @map("response_code")
+    responseBody String?       @map("response_body")
+    attempts     Int           @default(0) @map("attempts")
+    nextRetry    DateTime?     @map("next_retry")
+    createdAt    DateTime      @default(now()) @map("created_at")
+    deliveredAt  DateTime?     @map("delivered_at")
+
+    @@map("webhook_deliveries")
+}
+
+// SystemLog Model - System audit and error logging
+model SystemLog {
+    id        String   @id @default(uuid())
+    level     LogLevel @map("level")
+    service   String   @map("service")
+    message   String   @map("message")
+    details   String?  @map("details") // JSON details
+    userId    String?  @map("user_id")
+    sessionId String?  @map("session_id")
+    workerId  String?  @map("worker_id")
+    timestamp DateTime @default(now())
+
+    @@map("system_logs")
+}
+
+// UsageRecord Model - Simple API usage counting
+model UsageRecord {
+    id          String   @id @default(uuid())
+    userId      String   @map("user_id")
+    sessionId   String?  @map("session_id")
+    apiKeyId    String   @map("api_key_id")
+    usageCount  Int      @default(0) @map("usage_count") // Number of API hits
+    billingDate DateTime @map("billing_date") // Date for billing period (YYYY-MM-01)
+    createdAt   DateTime @default(now()) @map("created_at")
+
+    // Relationships
+    user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    session Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+    apiKey  ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+    // Indexes for efficient querying
+    @@index([userId, billingDate])
+    @@index([apiKeyId, billingDate])
+    @@index([sessionId, billingDate])
+    @@map("usage_records")
+}
+
+// Enums
 enum UserRole {
-  CUSTOMER
-  ADMIN
+    USER
+    ADMINISTRATOR
 }
 
 enum UserTier {
-  FREE
-  PRO
-  PREMIUM
+    BASIC
+    PRO
+    MAX
 }
 
 enum SessionStatus {
-  INITIALIZING
-  QR_READY
-  CONNECTED
-  DISCONNECTED
-  ERROR
+    INIT
+    QR_REQUIRED
+    CONNECTED
+    DISCONNECTED
+    RECONNECTING
+    ERROR
 }
 
 enum WorkerStatus {
-  ONLINE
-  OFFLINE
-  MAINTENANCE
+    ONLINE
+    OFFLINE
+    MAINTENANCE
 }
 
 enum MessageDirection {
-  INBOUND
-  OUTBOUND
+    INBOUND
+    OUTBOUND
 }
 
 enum MessageType {
-  TEXT
-  IMAGE
-  DOCUMENT
-  AUDIO
-  VIDEO
+    TEXT
+    IMAGE
+    DOCUMENT
+    AUDIO
+    VIDEO
+    STICKER
+    LOCATION
+    CONTACT
 }
 
 enum MessageStatus {
-  PENDING
-  SENT
-  DELIVERED
-  READ
-  FAILED
+    PENDING
+    SENT
+    DELIVERED
+    READ
+    FAILED
 }
+
+enum WebhookStatus {
+    PENDING
+    DELIVERED
+    FAILED
+    RETRYING
+}
+
+enum LogLevel {
+    ERROR
+    WARN
+    INFO
+    DEBUG
+}
+
 ```
 
 ---
@@ -304,7 +413,7 @@ Content-Type: application/json
 {
   "email": "user@example.com",
   "password": "securePassword123",
-  "tier": "free"
+  "tier": "basic"
 }
 
 Response: {
@@ -314,7 +423,7 @@ Response: {
       "id": "user123",
       "email": "user@example.com",
       "role": "customer",
-      "tier": "free"
+      "tier": "basic"
     },
     "token": "jwt-token-here",
     "apiKey": "api-key-here"
@@ -576,7 +685,7 @@ class AuthService {
     this.prisma = new PrismaClient();
   }
 
-  async register(email, password, tier = "FREE") {
+  async register(email, password, tier = "BASIC") {
     // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -600,7 +709,7 @@ class AuthService {
         passwordHash,
         tier,
         apiKey,
-        role: "CUSTOMER",
+        role: "USER",
       },
     });
 
@@ -741,9 +850,9 @@ class SessionService {
     });
 
     const tierLimits = {
-      FREE: 1,
+      BASIC: 1,
       PRO: 5,
-      PREMIUM: 20,
+      MAX: 20,
     };
 
     const currentSessionCount = user.sessions.filter(
@@ -766,7 +875,7 @@ class SessionService {
         userId,
         workerId: worker.id,
         name,
-        status: "INITIALIZING",
+        status: "DISCONNECTED",
       },
     });
 
@@ -1202,7 +1311,7 @@ class WorkerService {
     const affectedSessions = await this.prisma.session.findMany({
       where: {
         workerId,
-        status: { in: ["CONNECTED", "QR_READY"] },
+        status: { in: ["CONNECTED", "QR_REQUIRED"] },
       },
     });
 
@@ -1231,7 +1340,7 @@ class WorkerService {
       where: { id: sessionId },
       data: {
         workerId: availableWorker.id,
-        status: "INITIALIZING",
+        status: "INIT",
       },
     });
 
@@ -1445,13 +1554,13 @@ const requireRole = (roles) => {
   };
 };
 
-const requireAdmin = requireRole(["ADMIN"]);
-const requireCustomer = requireRole(["CUSTOMER", "ADMIN"]);
+const requireAdmin = requireRole(["ADMINISTRATOR"]);
+const requireUser = requireRole(["USER", "ADMINISTRATOR"]);
 
 module.exports = {
   requireRole,
   requireAdmin,
-  requireCustomer,
+  requireUser,
 };
 ```
 
@@ -1490,12 +1599,12 @@ const createMessageLimiter = async (req, res, next) => {
   const key = `message_limit:${userId}`;
 
   const userTierLimits = {
-    FREE: 100, // 100 messages per hour
+    BASIC: 100, // 100 messages per hour
     PRO: 1000, // 1000 messages per hour
-    PREMIUM: 10000, // 10000 messages per hour
+    MAX: 10000, // 10000 messages per hour
   };
 
-  const limit = userTierLimits[req.user.tier] || userTierLimits.FREE;
+  const limit = userTierLimits[req.user.tier] || userTierLimits.BASIC;
   const windowMs = 60 * 60 * 1000; // 1 hour
 
   try {

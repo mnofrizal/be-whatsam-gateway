@@ -1,5 +1,4 @@
 # Docker Compose for WhatsApp Gateway PaaS Backend Development
-version: '3.8'
 
 services:
   # PostgreSQL Database
