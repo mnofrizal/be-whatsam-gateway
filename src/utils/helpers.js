@@ -1,5 +1,6 @@
 // Helper utilities for WhatsApp Gateway PaaS Backend
 import { HTTP_STATUS, ERROR_CODES, REGEX, VALIDATION } from "./constants.js";
+import { validationResult } from "express-validator";
 
 /**
  * Standardized API Response Helper
@@ -238,6 +239,32 @@ export class ValidationHelper {
       limit: validatedLimit,
       offset: validatedOffset,
     };
+  }
+
+  /**
+   * Handle express-validator validation errors
+   * @param {object} req - Express request object
+   * @param {object} res - Express response object
+   * @param {Function} next - Express next function
+   * @returns {void}
+   */
+  static handleValidationErrors(req, res, next) {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      const formattedErrors = errors.array().map((error) => ({
+        field: error.path || error.param,
+        message: error.msg,
+        value: error.value,
+        location: error.location,
+      }));
+
+      return res
+        .status(400)
+        .json(ApiResponse.createValidationErrorResponse(formattedErrors));
+    }
+
+    next();
   }
 }
 

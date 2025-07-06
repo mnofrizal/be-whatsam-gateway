@@ -346,20 +346,26 @@ export const getAvailableWorker = async () => {
     const availableWorkers = await prisma.worker.findMany({
       where: {
         status: "ONLINE",
-        sessionCount: {
-          lt: prisma.worker.fields.maxSessions,
-        },
       },
     });
 
-    if (availableWorkers.length === 0) {
-      logger.warn("No available workers found for session assignment");
+    // Filter workers that have available capacity
+    const workersWithCapacity = availableWorkers.filter(
+      (worker) => worker.sessionCount < worker.maxSessions
+    );
+
+    if (workersWithCapacity.length === 0) {
+      logger.warn("No available workers found for session assignment", {
+        totalWorkers: availableWorkers.length,
+        onlineWorkers: availableWorkers.length,
+        workersWithCapacity: 0,
+      });
       return null;
     }
 
     // Get enhanced session data from Redis for intelligent scoring
     const workersWithScores = await Promise.all(
-      availableWorkers.map(async (worker) => {
+      workersWithCapacity.map(async (worker) => {
         try {
           const redisData = await redis.hget("workers", worker.id);
           const enhancedData = redisData ? JSON.parse(redisData) : null;
@@ -1037,12 +1043,126 @@ export const getWorkerStatistics = async () => {
   }
 };
 
+/**
+ * Get worker by ID
+ * @param {string} workerId - Worker identifier
+ * @returns {Object|null} Worker data or null if not found
+ */
+export const getWorkerById = async (workerId) => {
+  try {
+    const worker = await prisma.worker.findUnique({
+      where: { id: workerId },
+    });
+
+    if (!worker) {
+      logger.warn("Worker not found", { workerId });
+      return null;
+    }
+
+    return worker;
+  } catch (error) {
+    logger.error("Get worker by ID failed:", {
+      workerId,
+      error: error.message,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Increment worker session count
+ * @param {string} workerId - Worker identifier
+ * @returns {Object} Updated worker data
+ */
+export const incrementWorkerSessionCount = async (workerId) => {
+  try {
+    const worker = await prisma.worker.update({
+      where: { id: workerId },
+      data: {
+        sessionCount: { increment: 1 },
+        updatedAt: new Date(),
+      },
+    });
+
+    // Update Redis cache
+    const redisData = await redis.hget("workers", workerId);
+    if (redisData) {
+      const workerData = JSON.parse(redisData);
+      workerData.sessionCount = worker.sessionCount;
+      await redis.hset("workers", workerId, JSON.stringify(workerData));
+    }
+
+    logger.debug("Worker session count incremented", {
+      workerId,
+      newCount: worker.sessionCount,
+    });
+
+    return worker;
+  } catch (error) {
+    logger.error("Increment worker session count failed:", {
+      workerId,
+      error: error.message,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Decrement worker session count
+ * @param {string} workerId - Worker identifier
+ * @returns {Object} Updated worker data
+ */
+export const decrementWorkerSessionCount = async (workerId) => {
+  try {
+    const worker = await prisma.worker.update({
+      where: { id: workerId },
+      data: {
+        sessionCount: { decrement: 1 },
+        updatedAt: new Date(),
+      },
+    });
+
+    // Ensure session count doesn't go below 0
+    if (worker.sessionCount < 0) {
+      await prisma.worker.update({
+        where: { id: workerId },
+        data: { sessionCount: 0 },
+      });
+      worker.sessionCount = 0;
+    }
+
+    // Update Redis cache
+    const redisData = await redis.hget("workers", workerId);
+    if (redisData) {
+      const workerData = JSON.parse(redisData);
+      workerData.sessionCount = worker.sessionCount;
+      await redis.hset("workers", workerId, JSON.stringify(workerData));
+    }
+
+    logger.debug("Worker session count decremented", {
+      workerId,
+      newCount: worker.sessionCount,
+    });
+
+    return worker;
+  } catch (error) {
+    logger.error("Decrement worker session count failed:", {
+      workerId,
+      error: error.message,
+    });
+    throw error;
+  }
+};
+
 // Export all functions as default object for compatibility
 export default {
   registerWorker,
   updateWorkerHeartbeat,
   getWorkers,
   getAvailableWorker,
+  getWorkerById,
+  incrementWorkerSessionCount,
+  decrementWorkerSessionCount,
   calculateWorkerScore,
   calculateBasicWorkerScore,
   removeWorker,

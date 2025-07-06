@@ -72,7 +72,7 @@ export const createMessageLimiter = async (req, res, next) => {
 
   const limit =
     messageLimitsByTier[userTier]?.messagesPerHour ||
-    messageLimitsByTier.FREE.messagesPerHour;
+    messageLimitsByTier.BASIC.messagesPerHour;
 
   try {
     if (redis) {
@@ -131,7 +131,7 @@ export const createApiLimiter = async (req, res, next) => {
 
   const limit =
     messageLimitsByTier[userTier]?.apiCallsPerHour ||
-    messageLimitsByTier.FREE.apiCallsPerHour;
+    messageLimitsByTier.BASIC.apiCallsPerHour;
 
   try {
     if (redis) {

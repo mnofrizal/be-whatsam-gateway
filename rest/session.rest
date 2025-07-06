@@ -1,111 +1,688 @@
-### WhatsApp Gateway PaaS - Session Management Endpoints
+### Session Management API Testing
+### WhatsApp Gateway PaaS Backend - Session Endpoints
 ### Base URL: http://localhost:8000/api/v1
 
+@userEmail = admin@whatsapp-gateway.com
+@userPassword = AdminPassword123!
 @baseUrl = http://localhost:8000/api/v1
-@contentType = application/json
+@jwtToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYTU5YzcxOS02YzcxLTQzOWYtYjIyMi1hYzAzNjYwNDhiMGIiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUxNzkwMjQwLCJleHAiOjE3NTIzOTUwNDAsImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.OoC7Q58CyzinbP3dhtiWlPzW7xxRWcWSrRWmOpEuJ9E
+@sessionId = user123-personal
+@apiKey = sk_1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 
-### Variables (Update these with actual values)
-@jwtToken = your-jwt-token-here
-@sessionId = your-session-id-here
-@phoneNumber = 6281234567890@s.whatsapp.net
+### ===========================================
+### AUTHENTICATION SETUP
+### ===========================================
 
-###
-# List User Sessions
+### 1. User Login (Get JWT Token)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+### ===========================================
+### SESSION MANAGEMENT - PHASE 1 (CREATE CARD)
+### ===========================================
+
+### 2. Create Session Card (Phase 1)
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{sessionId}}",
+  "name": "Personal WhatsApp",
+  "description": "My personal WhatsApp session for customer support"
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "id": "user123-personal",
+#     "userId": "user123",
+#     "name": "Personal WhatsApp",
+#     "description": "My personal WhatsApp session for customer support",
+#     "status": "DISCONNECTED",
+#     "workerId": null,
+#     "phoneNumber": null,
+#     "qrCode": null,
+#     "apiKey": "sk_1234567890abcdef...",
+#     "createdAt": "2024-01-15T10:30:00Z",
+#     "updatedAt": "2024-01-15T10:30:00Z"
+#   },
+#   "message": "Session created successfully"
+# }
+
+### 3. Create Session with Auto-Generated ID
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "name": "Business WhatsApp",
+  "description": "Business account for sales inquiries"
+}
+
+### 4. Create Session - Validation Error (Missing Name)
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "test-session",
+  "description": "Session without name"
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "name",
+#       "message": "Session name is required"
+#     }
+#   ]
+# }
+
+### 5. Create Session - Tier Limit Exceeded
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "name": "Second Session",
+  "description": "This should fail for BASIC tier users"
+}
+
+### Expected Response (for BASIC tier):
+# {
+#   "success": false,
+#   "error": "Session limit exceeded. BASIC tier allows 1 sessions. Currently active: 1"
+# }
+
+### ===========================================
+### SESSION MANAGEMENT - PHASE 2 (CONNECT)
+### ===========================================
+
+### 6. Connect Session to Worker (Phase 2)
+POST {{baseUrl}}/sessions/{{sessionId}}/connect
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "sessionId": "user123-personal",
+#     "status": "qr_required",
+#     "workerId": "worker-001",
+#     "workerEndpoint": "http://192.168.1.100:8001",
+#     "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+#   },
+#   "message": "Session connected to worker successfully"
+# }
+
+### 7. Connect Session - Already Connected
+POST {{baseUrl}}/sessions/{{sessionId}}/connect
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Session is already connected"
+# }
+
+### 8. Connect Session - No Available Workers
+POST {{baseUrl}}/sessions/test-no-workers/connect
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "No available workers. Please try again later."
+# }
+
+### ===========================================
+### SESSION INFORMATION & STATUS
+### ===========================================
+
+### 9. Get User Sessions (List)
 GET {{baseUrl}}/sessions
 Authorization: Bearer {{jwtToken}}
 
-###
-# List Sessions with Status Filter
-GET {{baseUrl}}/sessions?status=CONNECTED&limit=10&offset=0
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "sessions": [
+#       {
+#         "id": "user123-personal",
+#         "name": "Personal WhatsApp",
+#         "status": "connected",
+#         "phoneNumber": "+6281234567890",
+#         "workerId": "worker-001",
+#         "worker": {
+#           "id": "worker-001",
+#           "endpoint": "http://192.168.1.100:8001",
+#           "status": "ONLINE"
+#         },
+#         "apiKey": {
+#           "key": "sk_1234567890abcdef...",
+#           "isActive": true,
+#           "lastUsed": "2024-01-15T10:30:00Z"
+#         },
+#         "createdAt": "2024-01-15T10:30:00Z",
+#         "lastSeenAt": "2024-01-15T10:35:00Z"
+#       }
+#     ],
+#     "pagination": {
+#       "total": 1,
+#       "page": 1,
+#       "limit": 20,
+#       "totalPages": 1,
+#       "hasNext": false,
+#       "hasPrev": false
+#     }
+#   }
+# }
+
+### 10. Get User Sessions with Filters
+GET {{baseUrl}}/sessions?status=connected&page=1&limit=10&search=personal
 Authorization: Bearer {{jwtToken}}
 
-###
-# Create New Session
-POST {{baseUrl}}/sessions
-Content-Type: {{contentType}}
-Authorization: Bearer {{jwtToken}}
-
-{
-  "name": "My WhatsApp Session",
-  "sessionId": "custom-session-id"
-}
-
-###
-# Get Session Details
+### 11. Get Session Details by ID
 GET {{baseUrl}}/sessions/{{sessionId}}
 Authorization: Bearer {{jwtToken}}
 
-###
-# Get Session QR Code
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "id": "user123-personal",
+#     "userId": "user123",
+#     "name": "Personal WhatsApp",
+#     "description": "My personal WhatsApp session",
+#     "status": "CONNECTED",
+#     "phoneNumber": "+6281234567890",
+#     "workerId": "worker-001",
+#     "qrCode": null,
+#     "lastSeenAt": "2024-01-15T10:35:00Z",
+#     "worker": {
+#       "id": "worker-001",
+#       "endpoint": "http://192.168.1.100:8001",
+#       "status": "ONLINE",
+#       "sessionCount": 25,
+#       "maxSessions": 50,
+#       "lastHeartbeat": "2024-01-15T10:35:00Z"
+#     },
+#     "apiKey": {
+#       "key": "sk_1234567890abcdef...",
+#       "name": "Personal WhatsApp - API Key",
+#       "isActive": true,
+#       "lastUsed": "2024-01-15T10:30:00Z",
+#       "createdAt": "2024-01-15T10:30:00Z"
+#     },
+#     "createdAt": "2024-01-15T10:30:00Z",
+#     "updatedAt": "2024-01-15T10:35:00Z"
+#   }
+# }
+
+### 12. Get Session Details - Not Found
+GET {{baseUrl}}/sessions/non-existent-session
+Authorization: Bearer {{jwtToken}}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Session not found or access denied"
+# }
+
+### ===========================================
+### QR CODE MANAGEMENT
+### ===========================================
+
+### 13. Get Session QR Code
 GET {{baseUrl}}/sessions/{{sessionId}}/qr
 Authorization: Bearer {{jwtToken}}
 
-###
-# Get Session Status
+### Expected Response (QR Available):
+# {
+#   "success": true,
+#   "data": {
+#     "sessionId": "user123-personal",
+#     "status": "qr_required",
+#     "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+#     "qrString": "1@ABC123XYZ...",
+#     "expiresAt": "2024-01-15T10:32:00Z"
+#   }
+# }
+
+### Expected Response (QR Not Available):
+# {
+#   "success": true,
+#   "data": {
+#     "sessionId": "user123-personal",
+#     "status": "connected",
+#     "qrCode": null,
+#     "message": "QR code not available or expired"
+#   }
+# }
+
+### 14. Get QR Code - Session Not Found
+GET {{baseUrl}}/sessions/non-existent/qr
+Authorization: Bearer {{jwtToken}}
+
+### ===========================================
+### SESSION STATUS MONITORING
+### ===========================================
+
+### 15. Get Session Status (Real-time)
 GET {{baseUrl}}/sessions/{{sessionId}}/status
 Authorization: Bearer {{jwtToken}}
 
-###
-# Send Text Message
-POST {{baseUrl}}/sessions/{{sessionId}}/send
-Content-Type: {{contentType}}
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "sessionId": "user123-personal",
+#     "status": "connected",
+#     "phoneNumber": "+6281234567890",
+#     "lastSeenAt": "2024-01-15T10:35:00Z",
+#     "workerId": "worker-001",
+#     "workerStatus": "online",
+#     "lastActivity": "2024-01-15T10:35:00Z",
+#     "connectionQuality": "excellent"
+#   }
+# }
+
+### 16. Get Status - Disconnected Session
+GET {{baseUrl}}/sessions/disconnected-session/status
 Authorization: Bearer {{jwtToken}}
 
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "sessionId": "disconnected-session",
+#     "status": "disconnected",
+#     "phoneNumber": null,
+#     "lastSeenAt": "2024-01-15T09:30:00Z",
+#     "workerId": null,
+#     "workerStatus": null
+#   }
+# }
+
+### ===========================================
+### MESSAGE SENDING (API KEY AUTHENTICATION)
+### ===========================================
+
+### 17. Send Text Message (Using Session API Key)
+POST {{baseUrl}}/sessions/{{sessionId}}/send
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
 {
-  "to": "{{phoneNumber}}",
+  "to": "6281234567890",
   "type": "text",
-  "message": "Hello from WhatsApp Gateway!"
+  "message": "Hello from WhatsApp Gateway API! 👋"
 }
 
-###
-# Send Image Message
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "messageId": "msg_1234567890",
+#     "sessionId": "user123-personal",
+#     "to": "6281234567890@s.whatsapp.net",
+#     "type": "text",
+#     "status": "sent",
+#     "timestamp": "2024-01-15T10:36:00Z"
+#   },
+#   "message": "Message sent successfully"
+# }
+
+### 18. Send Image Message
 POST {{baseUrl}}/sessions/{{sessionId}}/send
-Content-Type: {{contentType}}
-Authorization: Bearer {{jwtToken}}
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
 
 {
-  "to": "{{phoneNumber}}",
+  "to": "6281234567890",
   "type": "image",
-  "media": "base64-encoded-image-data",
+  "mediaUrl": "https://example.com/image.jpg",
   "caption": "Check out this image!"
 }
 
-###
-# Send Document Message
+### 19. Send Document Message
 POST {{baseUrl}}/sessions/{{sessionId}}/send
-Content-Type: {{contentType}}
-Authorization: Bearer {{jwtToken}}
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
 
 {
-  "to": "{{phoneNumber}}",
+  "to": "6281234567890",
   "type": "document",
-  "media": "base64-encoded-document-data",
-  "filename": "document.pdf",
-  "caption": "Important document"
+  "mediaUrl": "https://example.com/document.pdf",
+  "filename": "invoice.pdf",
+  "caption": "Your invoice is ready"
 }
 
-###
-# Get Message History
-GET {{baseUrl}}/sessions/{{sessionId}}/messages
+### 20. Send Message - Invalid Phone Number
+POST {{baseUrl}}/sessions/{{sessionId}}/send
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "to": "invalid-phone",
+  "type": "text",
+  "message": "This should fail"
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "to",
+#       "message": "Phone number must be in international format (e.g., 6281234567890)"
+#     }
+#   ]
+# }
+
+### 21. Send Message - Rate Limit Exceeded
+POST {{baseUrl}}/sessions/{{sessionId}}/send
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "to": "6281234567890",
+  "type": "text",
+  "message": "This message should trigger rate limit"
+}
+
+### Expected Response (after rate limit):
+# {
+#   "success": false,
+#   "error": "Message limit exceeded. BASIC tier allows 100 messages per hour"
+# }
+
+### ===========================================
+### MESSAGE HISTORY (WEEK 5 FEATURE)
+### ===========================================
+
+### 22. Get Message History
+GET {{baseUrl}}/sessions/{{sessionId}}/messages?page=1&limit=20
 Authorization: Bearer {{jwtToken}}
 
-###
-# Get Message History with Filters
-GET {{baseUrl}}/sessions/{{sessionId}}/messages?limit=20&offset=0&direction=OUTBOUND&status=DELIVERED
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Feature not implemented yet",
+#   "message": "Message history will be available in Week 5"
+# }
+
+### 23. Get Message History with Filters
+GET {{baseUrl}}/sessions/{{sessionId}}/messages?type=text&direction=outbound&since=2024-01-15T00:00:00Z
 Authorization: Bearer {{jwtToken}}
 
-###
-# Get Message History with Date Range
-GET {{baseUrl}}/sessions/{{sessionId}}/messages?from=2024-01-01T00:00:00Z&to=2024-01-02T00:00:00Z
-Authorization: Bearer {{jwtToken}}
+### ===========================================
+### SESSION MANAGEMENT OPERATIONS
+### ===========================================
 
-###
-# Restart Session
+### 24. Restart Session
 POST {{baseUrl}}/sessions/{{sessionId}}/restart
-Content-Type: {{contentType}}
 Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
 
-###
-# Delete Session
+{
+  "reason": "Connection issues"
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "sessionId": "user123-personal",
+#     "status": "INIT",
+#     "message": "Session restarted successfully",
+#     "workerId": "worker-001",
+#     "restartedAt": "2024-01-15T10:40:00Z"
+#   }
+# }
+
+### 25. Disconnect Session
+POST {{baseUrl}}/sessions/{{sessionId}}/disconnect
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "sessionId": "user123-personal",
+#     "status": "DISCONNECTED",
+#     "message": "Session disconnected successfully",
+#     "disconnectedAt": "2024-01-15T10:41:00Z"
+#   }
+# }
+
+### 26. Logout Session
+POST {{baseUrl}}/sessions/{{sessionId}}/logout
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "sessionId": "user123-personal",
+#     "status": "DISCONNECTED",
+#     "phoneNumber": null,
+#     "message": "Session logged out successfully",
+#     "loggedOutAt": "2024-01-15T10:42:00Z"
+#   }
+# }
+
+### 27. Delete Session
 DELETE {{baseUrl}}/sessions/{{sessionId}}
 Authorization: Bearer {{jwtToken}}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "sessionId": "user123-personal",
+#     "deleted": true,
+#     "message": "Session deleted successfully"
+#   }
+# }
+
+### 28. Delete Session - Not Found
+DELETE {{baseUrl}}/sessions/non-existent-session
+Authorization: Bearer {{jwtToken}}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Session not found or access denied"
+# }
+
+### ===========================================
+### ERROR SCENARIOS
+### ===========================================
+
+### 29. Access Session Without Authentication
+GET {{baseUrl}}/sessions/{{sessionId}}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Access token required"
+# }
+
+### 30. Access Session with Invalid Token
+GET {{baseUrl}}/sessions/{{sessionId}}
+Authorization: Bearer invalid-token
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Invalid token"
+# }
+
+### 31. Access Another User's Session
+GET {{baseUrl}}/sessions/other-user-session
+Authorization: Bearer {{jwtToken}}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Session not found or access denied"
+# }
+
+### 32. Create Session with Invalid Session ID
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "invalid@session#id",
+  "name": "Invalid Session ID",
+  "description": "This should fail validation"
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "sessionId",
+#       "message": "Session ID can only contain letters, numbers, hyphens, and underscores"
+#     }
+#   ]
+# }
+
+### ===========================================
+### PERFORMANCE TESTING
+### ===========================================
+
+### 33. Rapid Session Status Polling (Simulate Frontend)
+GET {{baseUrl}}/sessions/{{sessionId}}/status
+Authorization: Bearer {{jwtToken}}
+
+### 34. Multiple QR Code Requests
+GET {{baseUrl}}/sessions/{{sessionId}}/qr
+Authorization: Bearer {{jwtToken}}
+
+### 35. Bulk Message Sending (Rate Limit Test)
+POST {{baseUrl}}/sessions/{{sessionId}}/send
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "to": "6281234567890",
+  "type": "text",
+  "message": "Bulk message test #1"
+}
+
+### ===========================================
+### INTEGRATION TESTING SCENARIOS
+### ===========================================
+
+### 36. Complete Session Lifecycle Test
+# 1. Create session card
+# 2. Connect to worker
+# 3. Get QR code
+# 4. Simulate QR scan (status becomes connected)
+# 5. Send messages
+# 6. Check status
+# 7. Delete session
+
+### 37. Worker Failover Simulation
+# 1. Create session and connect
+# 2. Simulate worker going offline
+# 3. Check session status (should show disconnected)
+# 4. Reconnect session (should assign new worker)
+
+### 38. Multi-Session Management
+# 1. Create multiple sessions (within tier limit)
+# 2. Connect all sessions
+# 3. Send messages from different sessions
+# 4. Monitor all session statuses
+# 5. Test session lifecycle operations
+# 6. Delete all sessions
+
+### 39. Session Lifecycle Operations Test
+# 1. Create and connect session
+# 2. Test restart operation (should keep connection data)
+# 3. Test disconnect operation (should stop connection, keep data)
+# 4. Test reconnect after disconnect (should be instant)
+# 5. Test logout operation (should clear all data)
+# 6. Test reconnect after logout (should require QR scan)
+
+### ===========================================
+### NOTES FOR TESTING
+### ===========================================
+
+# 1. Replace {{jwtToken}} with actual JWT token from login response
+# 2. Replace {{sessionId}} with actual session ID from create response
+# 3. Replace {{apiKey}} with actual API key from session creation
+# 4. Ensure workers are running and registered before testing Phase 2
+# 5. Test rate limiting by sending multiple requests rapidly
+# 6. Test tier limits by creating sessions beyond user tier capacity
+# 7. Test real-time features by polling status endpoints
+# 8. Test error scenarios to ensure proper error handling
+# 9. Monitor logs for debugging information
+# 10. Use different user accounts to test access control
+
+### ===========================================
+### EXPECTED SYSTEM BEHAVIOR
+### ===========================================
+
+# Phase 1 (Create Session Card):
+# - Creates database record with status DISCONNECTED
+# - Generates session API key
+# - Validates user tier limits
+# - Returns session data immediately
+
+# Phase 2 (Connect Session):
+# - Assigns available worker
+# - Creates session on worker
+# - Updates Redis routing
+# - Returns QR code for scanning
+# - Status changes: DISCONNECTED → CONNECTING → QR_REQUIRED → CONNECTED
+
+# Real-time Updates:
+# - Status polling returns live data from worker
+# - QR code polling for frontend display
+# - Session status changes reflected immediately
+# - Worker failures trigger session disconnection
+
+# Message Sending:
+# - Routes to appropriate worker via Redis
+# - Enforces rate limiting per user tier
+# - Logs messages for analytics
+# - Returns delivery status
+
+# Session Management:
+# - User can only access own sessions
+# - Proper cleanup on deletion
+# - Session migration on worker failure
+# - API key authentication for external access

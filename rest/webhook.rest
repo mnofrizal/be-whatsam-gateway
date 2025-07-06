@@ -1,0 +1,629 @@
+### WhatsApp Gateway Backend - Webhook API Testing
+### These endpoints are called by workers to report status updates
+
+@baseUrl = http://localhost:8000/api/v1
+@workerToken = worker-secret-token-change-in-production
+
+### ===========================================
+### SESSION STATUS WEBHOOKS
+### ===========================================
+
+### 1. Session Status Update - QR Required
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "qr_required",
+  "qrCode": "1@ABC123XYZ789DEF456GHI",
+  "timestamp": "2025-01-07T15:30:00.000Z"
+}
+
+### 2. Session Status Update - Connected
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "connected",
+  "phoneNumber": "+6281234567890",
+  "timestamp": "2025-01-07T15:32:00.000Z"
+}
+
+### 3. Session Status Update - Disconnected
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "disconnected",
+  "timestamp": "2025-01-07T15:35:00.000Z"
+}
+
+### 4. Session Status Update - Reconnecting
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "reconnecting",
+  "timestamp": "2025-01-07T15:36:00.000Z"
+}
+
+### 5. Session Status Update - Error
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "error",
+  "errorMessage": "WhatsApp connection failed",
+  "timestamp": "2025-01-07T15:37:00.000Z"
+}
+
+### ===========================================
+### MESSAGE STATUS WEBHOOKS
+### ===========================================
+
+### 6. Message Status Update - Sent
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "messageId": "msg_12345",
+  "status": "sent",
+  "timestamp": "2025-01-07T15:40:00.000Z"
+}
+
+### 7. Message Status Update - Delivered
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "messageId": "msg_12345",
+  "status": "delivered",
+  "deliveredAt": "2025-01-07T15:40:30.000Z",
+  "timestamp": "2025-01-07T15:40:30.000Z"
+}
+
+### 8. Message Status Update - Read
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "messageId": "msg_12345",
+  "status": "read",
+  "readAt": "2025-01-07T15:41:00.000Z",
+  "timestamp": "2025-01-07T15:41:00.000Z"
+}
+
+### 9. Message Status Update - Failed
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "messageId": "msg_12346",
+  "status": "failed",
+  "errorMessage": "Message delivery failed - recipient not found",
+  "timestamp": "2025-01-07T15:42:00.000Z"
+}
+
+### ===========================================
+### WORKER HEARTBEAT WEBHOOKS
+### ===========================================
+
+### 10. Worker Heartbeat - Online
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-001",
+  "status": "online",
+  "sessionCount": 5,
+  "cpuUsage": 45.5,
+  "memoryUsage": 67.8,
+  "uptime": 3600,
+  "activeConnections": 5,
+  "timestamp": "2025-01-07T15:45:00.000Z"
+}
+
+### 11. Worker Heartbeat - High Load
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-001",
+  "status": "online",
+  "sessionCount": 45,
+  "cpuUsage": 85.2,
+  "memoryUsage": 92.1,
+  "uptime": 7200,
+  "activeConnections": 45,
+  "timestamp": "2025-01-07T15:46:00.000Z"
+}
+
+### 12. Worker Heartbeat - Maintenance Mode
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-001",
+  "status": "maintenance",
+  "sessionCount": 0,
+  "cpuUsage": 15.0,
+  "memoryUsage": 25.5,
+  "uptime": 7500,
+  "activeConnections": 0,
+  "timestamp": "2025-01-07T15:47:00.000Z"
+}
+
+### ===========================================
+### ERROR SCENARIOS
+### ===========================================
+
+### 13. Invalid Session Status - Missing sessionId
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "status": "connected",
+  "phoneNumber": "+6281234567890",
+  "timestamp": "2025-01-07T15:50:00.000Z"
+}
+
+### 14. Invalid Message Status - Missing messageId
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "sent",
+  "timestamp": "2025-01-07T15:51:00.000Z"
+}
+
+### 15. Invalid Worker Heartbeat - Missing workerId
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "status": "online",
+  "sessionCount": 5,
+  "timestamp": "2025-01-07T15:52:00.000Z"
+}
+
+### 16. Unauthorized Request - No Token
+POST {{baseUrl}}/webhooks/session-status
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "connected",
+  "phoneNumber": "+6281234567890",
+  "timestamp": "2025-01-07T15:53:00.000Z"
+}
+
+### 17. Unauthorized Request - Invalid Token
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer invalid-token
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "connected",
+  "phoneNumber": "+6281234567890",
+  "timestamp": "2025-01-07T15:54:00.000Z"
+}
+
+### ===========================================
+### BULK TESTING SCENARIOS
+### ===========================================
+
+### 18. Multiple Session Updates (simulate worker reporting multiple sessions)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user456-business",
+  "status": "qr_required",
+  "qrCode": "1@XYZ789ABC123DEF456GHI",
+  "timestamp": "2025-01-07T15:55:00.000Z"
+}
+
+### 19. Message Batch Status Updates
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user456-business",
+  "messageId": "msg_67890",
+  "status": "delivered",
+  "deliveredAt": "2025-01-07T15:56:00.000Z",
+  "timestamp": "2025-01-07T15:56:00.000Z"
+}
+
+### ===========================================
+### INTEGRATION TESTING
+### ===========================================
+
+### 20. Complete Session Flow Simulation
+# Step 1: QR Required
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "integration-test-001",
+  "status": "qr_required",
+  "qrCode": "1@INTEGRATION123TEST456",
+  "timestamp": "2025-01-07T16:00:00.000Z"
+}
+
+### Step 2: Connected (after QR scan)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "integration-test-001",
+  "status": "connected",
+  "phoneNumber": "+6281234567890",
+  "timestamp": "2025-01-07T16:01:00.000Z"
+}
+
+### Step 3: Message Sent
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "integration-test-001",
+  "messageId": "msg_integration_001",
+  "status": "sent",
+  "timestamp": "2025-01-07T16:02:00.000Z"
+}
+
+### Step 4: Message Delivered
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "integration-test-001",
+  "messageId": "msg_integration_001",
+  "status": "delivered",
+  "deliveredAt": "2025-01-07T16:02:30.000Z",
+  "timestamp": "2025-01-07T16:02:30.000Z"
+}
+###############################################################################
+# VALIDATION TESTING SCENARIOS
+###############################################################################
+
+### ===========================================
+### VALIDATION ERROR TESTS - SESSION STATUS
+### ===========================================
+
+### 1. Missing sessionId (should fail validation)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "status": "connected",
+  "phoneNumber": "+6281234567890"
+}
+
+### 2. Invalid sessionId format (should fail validation)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "invalid session id with spaces!",
+  "status": "connected"
+}
+
+### 3. Missing status (should fail validation)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "phoneNumber": "+6281234567890"
+}
+
+### 4. Invalid status value (should fail validation)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "invalid_status"
+}
+
+### 5. Invalid phone number format (should fail validation)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "connected",
+  "phoneNumber": "invalid-phone"
+}
+
+### 6. Invalid timestamp format (should fail validation)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "connected",
+  "timestamp": "invalid-timestamp"
+}
+
+### ===========================================
+### VALIDATION ERROR TESTS - MESSAGE STATUS
+### ===========================================
+
+### 7. Missing messageId (should fail validation)
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "delivered"
+}
+
+### 8. Invalid messageId format (should fail validation)
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "messageId": "",
+  "status": "delivered"
+}
+
+### 9. Invalid message status (should fail validation)
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "messageId": "msg_12345",
+  "status": "invalid_message_status"
+}
+
+### 10. Invalid deliveredAt timestamp (should fail validation)
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "messageId": "msg_12345",
+  "status": "delivered",
+  "deliveredAt": "not-a-timestamp"
+}
+
+### ===========================================
+### VALIDATION ERROR TESTS - WORKER HEARTBEAT
+### ===========================================
+
+### 11. Missing workerId (should fail validation)
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "status": "online",
+  "sessionCount": 25
+}
+
+### 12. Invalid workerId format (should fail validation)
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "invalid worker id!",
+  "status": "online"
+}
+
+### 13. Invalid worker status (should fail validation)
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-001",
+  "status": "invalid_status"
+}
+
+### 14. Invalid sessionCount (negative number, should fail validation)
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-001",
+  "status": "online",
+  "sessionCount": -5
+}
+
+### 15. Invalid cpuUsage (over 100%, should fail validation)
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-001",
+  "status": "online",
+  "cpuUsage": 150.5
+}
+
+### ===========================================
+### PAYLOAD SIZE AND FORMAT TESTS
+### ===========================================
+
+### 16. Empty payload (should fail validation)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{}
+
+### 17. Invalid JSON format (should fail validation)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "connected"
+  // Missing comma - invalid JSON
+}
+
+### 18. Wrong Content-Type (should fail validation)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: text/plain
+
+sessionId=user123-personal&status=connected
+
+### ===========================================
+### SUCCESSFUL VALIDATION TESTS
+### ===========================================
+
+### 19. Valid session status with all optional fields
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "status": "connected",
+  "phoneNumber": "+6281234567890",
+  "timestamp": "2025-01-07T15:30:00.000Z"
+}
+
+### 20. Valid message status with all optional fields
+POST {{baseUrl}}/webhooks/message-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-personal",
+  "messageId": "msg_12345",
+  "status": "delivered",
+  "timestamp": "2025-01-07T15:30:00.000Z",
+  "deliveredAt": "2025-01-07T15:30:05.000Z",
+  "readAt": "2025-01-07T15:30:10.000Z"
+}
+
+### 21. Valid worker heartbeat with all optional fields
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-001",
+  "status": "online",
+  "sessionCount": 25,
+  "cpuUsage": 45.5,
+  "memoryUsage": 67.8,
+  "uptime": 86400,
+  "activeConnections": 23,
+  "timestamp": "2025-01-07T15:30:00.000Z"
+}
+
+### ===========================================
+### EDGE CASE TESTS
+### ===========================================
+
+### 22. Minimum valid sessionId length
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "a",
+  "status": "connected"
+}
+
+### 23. Maximum valid sessionId length (100 characters)
+POST {{baseUrl}}/webhooks/session-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "user123-very-long-session-id-that-is-exactly-one-hundred-characters-long-for-testing-purposes",
+  "status": "connected"
+}
+
+### 24. Zero session count (valid)
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-001",
+  "status": "online",
+  "sessionCount": 0
+}
+
+### 25. Maximum CPU usage (100%)
+POST {{baseUrl}}/webhooks/worker-heartbeat
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-001",
+  "status": "online",
+  "cpuUsage": 100.0
+}
+
+###############################################################################
+# VALIDATION TEST SUMMARY
+###############################################################################
+
+### Expected Results:
+### Tests 1-18: Should return 400 Bad Request with validation errors
+### Tests 19-25: Should return 200 OK with success response
+### 
+### Validation Features Tested:
+### - Required field validation
+### - Format validation (sessionId, workerId, phone numbers, timestamps)
+### - Enum validation (status values)
+### - Range validation (numeric fields)
+### - Content-Type validation
+### - Payload size validation
+### - JSON format validation
+### - Edge cases and boundary conditions

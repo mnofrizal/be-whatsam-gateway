@@ -49,6 +49,10 @@ model Session {
     usageRecords UsageRecord[]
     webhook      Webhook? // 1:1 relationship - one session has one webhook
 
+    // Indexes for webhook operations
+    @@index([userId, status])
+    @@index([workerId, status])
+    @@index([status, updatedAt])
     @@map("sessions")
 }
 
@@ -115,6 +119,10 @@ model Message {
     // Relationships
     session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
+    // Indexes for webhook operations
+    @@index([sessionId, status])
+    @@index([status, createdAt])
+    @@index([sessionId, createdAt])
     @@map("messages")
 }
 
@@ -132,6 +140,9 @@ model WorkerMetric {
     // Relationships
     worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
+    // Indexes for webhook operations
+    @@index([workerId, timestamp])
+    @@index([timestamp])
     @@map("worker_metrics")
 }
 

@@ -8,6 +8,7 @@ import sessionRoutes from "./session.routes.js";
 import workerRoutes from "./worker.routes.js";
 import adminRoutes from "./admin.routes.js";
 import apiRoutes from "./api.routes.js";
+import webhookRoutes from "./webhook.routes.js";
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ router.use(`/${API_VERSION}/auth`, authRoutes);
 router.use(`/${API_VERSION}/users`, userRoutes);
 router.use(`/${API_VERSION}/sessions`, sessionRoutes);
 router.use(`/${API_VERSION}/workers`, workerRoutes);
+router.use(`/${API_VERSION}/webhooks`, webhookRoutes);
 router.use(`/${API_VERSION}/admin`, adminRoutes);
 router.use(`/${API_VERSION}`, apiRoutes); // External API routes
 
@@ -46,6 +48,7 @@ router.get(`/${API_VERSION}/docs`, (req, res) => {
         users: `/${API_VERSION}/users`,
         sessions: `/${API_VERSION}/sessions`,
         workers: `/${API_VERSION}/workers`,
+        webhooks: `/${API_VERSION}/webhooks`,
         admin: `/${API_VERSION}/admin`,
         api: `/${API_VERSION}`,
       },
