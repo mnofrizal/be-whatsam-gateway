@@ -3,7 +3,7 @@
 
 ### Variables
 @baseUrl = http://localhost:8000/api/v1
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ZTIwMjMwYS0zNGEyLTQ2ODUtODFjMC01MjIxNGZiODc0YmQiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUxNzEzMDI3LCJleHAiOjE3NTIzMTc4MjcsImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.Q3FNteYbz-I53OOkkqRIlN7LU7kWkV6T9X1sogyitlE
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3MTQ0ZDUwMi1lNzIyLTRjYWEtYjBkYy1iYmEzYTQ1N2I3ZGEiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUxNzY3NjY0LCJleHAiOjE3NTIzNzI0NjQsImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.Y4QqFZE0-GUa7aQ6pvZOJTddoMjUZIn9a-XB145bkt8
 
 ### 1. Get User Profile
 GET {{baseUrl}}/users/profile
@@ -24,7 +24,7 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "email": "updated.test@example.com"
+  "email": "admin@whatsapp-gateway.com"
 }
 
 ### 4. Update User Profile - Change Password

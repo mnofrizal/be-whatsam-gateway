@@ -3,27 +3,54 @@ import express from "express";
 import { sessionLimiter } from "../middleware/rate-limit.js";
 import { authenticateJWT, authenticateWorker } from "../middleware/auth.js";
 import WorkerController from "../controllers/worker.controller.js";
+import {
+  validateWorkerRegistration,
+  validateWorkerHeartbeat,
+  validateWorkerIdParam,
+  validateAddWorker,
+  validateUpdateWorker,
+  validateTestWorkerConnectivity,
+  validateWorkerFilters,
+} from "../validation/worker.validation.js";
 
 const router = express.Router();
 
 // Worker Self-Registration (Internal - Worker to Backend)
 // POST /api/v1/workers/register - Worker registers itself with backend
-router.post("/register", authenticateWorker, WorkerController.registerWorker);
+router.post(
+  "/register",
+  authenticateWorker,
+  validateWorkerRegistration,
+  WorkerController.registerWorker
+);
 
 // Worker Heartbeat (Internal - Worker to Backend)
 // PUT /api/v1/workers/:workerId/heartbeat - Worker sends health metrics
 router.put(
   "/:workerId/heartbeat",
   authenticateWorker,
+  validateWorkerIdParam,
+  validateWorkerHeartbeat,
   WorkerController.updateHeartbeat
 );
 
 // Admin Worker Management (Requires JWT Authentication)
 // GET /api/v1/workers - Get all workers (Admin only)
-router.get("/", authenticateJWT, WorkerController.getWorkers);
+router.get(
+  "/",
+  authenticateJWT,
+  validateWorkerFilters,
+  WorkerController.getWorkers
+);
 
 // POST /api/v1/workers - Add new worker manually (Admin only)
-router.post("/", authenticateJWT, sessionLimiter, WorkerController.addWorker);
+router.post(
+  "/",
+  authenticateJWT,
+  sessionLimiter,
+  validateAddWorker,
+  WorkerController.addWorker
+);
 
 // GET /api/v1/workers/statistics - Get worker statistics (Admin only)
 router.get(
@@ -33,7 +60,12 @@ router.get(
 );
 
 // POST /api/v1/workers/test - Test worker connectivity (Admin only)
-router.post("/test", authenticateJWT, WorkerController.testWorkerConnectivity);
+router.post(
+  "/test",
+  authenticateJWT,
+  validateTestWorkerConnectivity,
+  WorkerController.testWorkerConnectivity
+);
 
 // POST /api/v1/workers/health-check - Trigger manual health check (Admin only)
 router.post(
@@ -46,23 +78,36 @@ router.post(
 router.get("/available", authenticateJWT, WorkerController.getAvailableWorker);
 
 // GET /api/v1/workers/:workerId - Get specific worker details (Admin only)
-router.get("/:workerId", authenticateJWT, WorkerController.getWorkerById);
+router.get(
+  "/:workerId",
+  authenticateJWT,
+  validateWorkerIdParam,
+  WorkerController.getWorkerById
+);
 
 // PUT /api/v1/workers/:workerId - Update worker configuration (Admin only)
 router.put(
   "/:workerId",
   authenticateJWT,
   sessionLimiter,
+  validateWorkerIdParam,
+  validateUpdateWorker,
   WorkerController.updateWorker
 );
 
 // DELETE /api/v1/workers/:workerId - Remove worker (Admin only)
-router.delete("/:workerId", authenticateJWT, WorkerController.removeWorker);
+router.delete(
+  "/:workerId",
+  authenticateJWT,
+  validateWorkerIdParam,
+  WorkerController.removeWorker
+);
 
 // POST /api/v1/workers/:workerId/test - Test specific worker connectivity (Admin only)
 router.post(
   "/:workerId/test",
   authenticateJWT,
+  validateWorkerIdParam,
   WorkerController.testSpecificWorkerConnectivity
 );
 

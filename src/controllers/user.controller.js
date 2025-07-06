@@ -1,288 +1,242 @@
 // User Controller - HTTP request handlers for user management
-import { ApiResponse, ValidationHelper } from "../utils/helpers.js";
+import { ApiResponse } from "../utils/helpers.js";
 import { HTTP_STATUS, ERROR_CODES } from "../utils/constants.js";
 import { asyncHandler } from "../middleware/error-handler.js";
-import UserService from "../services/user.service.js";
+import * as userService from "../services/user.service.js";
+import * as authService from "../services/auth.service.js";
 import logger from "../utils/logger.js";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../database/client.js";
+// Validation is now handled by middleware in routes
 
-const prisma = new PrismaClient();
+/**
+ * Get user profile
+ * GET /api/v1/users/profile
+ */
+const getUserProfile = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
 
-export class UserController {
-  /**
-   * Get user profile
-   * GET /api/v1/users/profile
-   */
-  static getUserProfile = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+  const userProfile = await userService.getUserProfile(userId);
 
-    const userProfile = await UserService.getUserProfile(userId);
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse({
+      user: userProfile,
+    })
+  );
+});
 
-    return res.status(HTTP_STATUS.OK).json(
-      ApiResponse.createSuccessResponse({
-        user: userProfile,
-      })
-    );
+/**
+ * Update user profile
+ * PUT /api/v1/users/profile
+ */
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+
+  // Data is already validated by middleware
+  const updatedUser = await userService.updateUserProfile(userId, req.body);
+
+  logger.info("User profile updated", {
+    userId,
+    email: req.user.email,
+    ip: req.ip,
+    userAgent: req.get("User-Agent"),
   });
 
-  /**
-   * Update user profile
-   * PUT /api/v1/users/profile
-   */
-  static updateUserProfile = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
-    const { name, email, currentPassword, newPassword } = req.body;
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(
+      {
+        user: updatedUser,
+      },
+      {
+        message: "Profile updated successfully",
+      }
+    )
+  );
+});
 
-    // Validate input
-    const validationErrors = [];
+/**
+ * Get user's API keys
+ * GET /api/v1/users/api-keys
+ */
+const getUserApiKeys = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
 
-    if (name && (!name.trim() || name.trim().length < 2)) {
-      validationErrors.push({
-        field: "name",
-        message: "Name must be at least 2 characters long",
-      });
-    }
+  const result = await userService.getUserApiKeys(userId);
 
-    if (email && !ValidationHelper.isValidEmail(email)) {
-      validationErrors.push({
-        field: "email",
-        message: "Invalid email format",
-      });
-    }
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse({
+      apiKeys: result.apiKeys,
+      total: result.total,
+    })
+  );
+});
 
-    if (newPassword && !ValidationHelper.isValidPassword(newPassword)) {
-      validationErrors.push({
-        field: "newPassword",
-        message:
-          "Password must be at least 8 characters long and contain at least one letter and one number",
-      });
-    }
+/**
+ * Delete API key
+ * DELETE /api/v1/users/api-keys/:id
+ */
+const deleteApiKey = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { id: apiKeyId } = req.params;
 
-    if (validationErrors.length > 0) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(ApiResponse.createValidationErrorResponse(validationErrors));
-    }
+  if (!apiKeyId) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json(
+        ApiResponse.createValidationErrorResponse([
+          { field: "id", message: "API key ID is required" },
+        ])
+      );
+  }
 
-    const updatedUser = await UserService.updateUserProfile(userId, {
-      name,
-      email,
-      currentPassword,
-      newPassword,
-    });
+  const result = await userService.deleteApiKey(userId, apiKeyId);
 
-    logger.info("User profile updated", {
-      userId,
-      email: req.user.email,
-      ip: req.ip,
-      userAgent: req.get("User-Agent"),
-    });
-
-    return res.status(HTTP_STATUS.OK).json(
-      ApiResponse.createSuccessResponse(
-        {
-          user: updatedUser,
-        },
-        {
-          message: "Profile updated successfully",
-        }
-      )
-    );
+  logger.info("API key deleted", {
+    userId,
+    apiKeyId,
+    ip: req.ip,
+    userAgent: req.get("User-Agent"),
   });
 
-  /**
-   * Get user's API keys
-   * GET /api/v1/users/api-keys
-   */
-  static getUserApiKeys = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(null, {
+      message: result.message,
+    })
+  );
+});
 
-    const result = await UserService.getUserApiKeys(userId);
+/**
+ * Get user usage statistics
+ * GET /api/v1/users/usage
+ */
+const getUserUsage = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
 
-    return res.status(HTTP_STATUS.OK).json(
-      ApiResponse.createSuccessResponse({
-        apiKeys: result.apiKeys,
-        total: result.total,
-      })
-    );
+  // Query parameters are already validated by middleware
+  const { period, sessionId } = req.query;
+  const usage = await userService.getUserUsage(userId, period, sessionId);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse({
+      usage,
+    })
+  );
+});
+
+/**
+ * Get user tier information
+ * GET /api/v1/users/tier
+ */
+const getUserTier = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+
+  const tierInfo = await userService.getUserTier(userId);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse({
+      tier: tierInfo,
+    })
+  );
+});
+
+/**
+ * Deactivate user account
+ * POST /api/v1/users/deactivate
+ */
+const deactivateAccount = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+
+  // Data is already validated by middleware
+  const { password } = req.body;
+
+  // Verify password before deactivation using AuthService
+  await authService.login(req.user.email, password);
+
+  const result = await userService.deactivateAccount(userId);
+
+  logger.info("User account deactivated", {
+    userId,
+    email: req.user.email,
+    ip: req.ip,
+    userAgent: req.get("User-Agent"),
   });
 
-  /**
-   * Delete API key
-   * DELETE /api/v1/users/api-keys/:id
-   */
-  static deleteApiKey = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
-    const { id: apiKeyId } = req.params;
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(null, {
+      message: result.message,
+    })
+  );
+});
 
-    if (!apiKeyId) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "id", message: "API key ID is required" },
-          ])
-        );
-    }
+/**
+ * Get user sessions
+ * GET /api/v1/users/sessions
+ */
+const getUserSessions = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
 
-    const result = await UserService.deleteApiKey(userId, apiKeyId);
+  // Query parameters are already validated by middleware
+  const { status, limit, offset } = req.query;
 
-    logger.info("API key deleted", {
-      userId,
-      apiKeyId,
-      ip: req.ip,
-      userAgent: req.get("User-Agent"),
-    });
+  // Build filter
+  const where = { userId };
+  if (status) {
+    where.status = status;
+  }
 
-    return res.status(HTTP_STATUS.OK).json(
-      ApiResponse.createSuccessResponse(null, {
-        message: result.message,
-      })
-    );
-  });
-
-  /**
-   * Get user usage statistics
-   * GET /api/v1/users/usage
-   */
-  static getUserUsage = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
-    const { period = "24h", sessionId } = req.query;
-
-    // Validate period
-    const validPeriods = ["24h", "7d", "30d"];
-    if (!validPeriods.includes(period)) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "period", message: "Period must be one of: 24h, 7d, 30d" },
-          ])
-        );
-    }
-
-    const usage = await UserService.getUserUsage(userId, period, sessionId);
-
-    return res.status(HTTP_STATUS.OK).json(
-      ApiResponse.createSuccessResponse({
-        usage,
-      })
-    );
-  });
-
-  /**
-   * Get user tier information
-   * GET /api/v1/users/tier
-   */
-  static getUserTier = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
-
-    const tierInfo = await UserService.getUserTier(userId);
-
-    return res.status(HTTP_STATUS.OK).json(
-      ApiResponse.createSuccessResponse({
-        tier: tierInfo,
-      })
-    );
-  });
-
-  /**
-   * Deactivate user account
-   * POST /api/v1/users/deactivate
-   */
-  static deactivateAccount = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
-    const { password } = req.body;
-
-    if (!password) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "password", message: "Password confirmation is required" },
-          ])
-        );
-    }
-
-    // Verify password before deactivation using AuthService
-    const AuthService = (await import("../services/auth.service.js")).default;
-    await AuthService.login(req.user.email, password);
-
-    const result = await UserService.deactivateAccount(userId);
-
-    logger.info("User account deactivated", {
-      userId,
-      email: req.user.email,
-      ip: req.ip,
-      userAgent: req.get("User-Agent"),
-    });
-
-    return res.status(HTTP_STATUS.OK).json(
-      ApiResponse.createSuccessResponse(null, {
-        message: result.message,
-      })
-    );
-  });
-
-  /**
-   * Get user sessions
-   * GET /api/v1/users/sessions
-   */
-  static getUserSessions = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
-    const { status, limit = 10, offset = 0 } = req.query;
-
-    // Build filter
-    const where = { userId };
-    if (status) {
-      where.status = status.toUpperCase();
-    }
-
-    // Get sessions with pagination
-    const [sessions, total] = await Promise.all([
-      prisma.session.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          phoneNumber: true,
-          status: true,
-          lastSeenAt: true,
-          createdAt: true,
-          updatedAt: true,
-          worker: {
-            select: {
-              id: true,
-              endpoint: true,
-              status: true,
-            },
-          },
-          _count: {
-            select: {
-              messages: true,
-              apiKeys: true,
-            },
+  // Get sessions with pagination
+  const [sessions, total] = await Promise.all([
+    prisma.session.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        phoneNumber: true,
+        status: true,
+        lastSeenAt: true,
+        createdAt: true,
+        updatedAt: true,
+        worker: {
+          select: {
+            id: true,
+            endpoint: true,
+            status: true,
           },
         },
-        orderBy: { createdAt: "desc" },
-        take: parseInt(limit),
-        skip: parseInt(offset),
-      }),
-      prisma.session.count({ where }),
-    ]);
-
-    return res.status(HTTP_STATUS.OK).json(
-      ApiResponse.createSuccessResponse({
-        sessions,
-        pagination: {
-          total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          hasMore: parseInt(offset) + parseInt(limit) < total,
+        _count: {
+          select: {
+            messages: true,
+            apiKeys: true,
+          },
         },
-      })
-    );
-  });
-}
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.session.count({ where }),
+  ]);
 
-export default UserController;
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse({
+      sessions,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+    })
+  );
+});
+
+// Export all functions as default object for route compatibility
+export default {
+  getUserProfile,
+  updateUserProfile,
+  getUserApiKeys,
+  deleteApiKey,
+  getUserUsage,
+  getUserTier,
+  deactivateAccount,
+  getUserSessions,
+};

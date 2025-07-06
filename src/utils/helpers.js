@@ -153,15 +153,6 @@ export class ApiResponse {
  */
 export class ValidationHelper {
   /**
-   * Validate email format
-   * @param {string} email - Email to validate
-   * @returns {boolean} - Is valid email
-   */
-  static isValidEmail(email) {
-    return REGEX.EMAIL.test(email);
-  }
-
-  /**
    * Validate phone number format
    * @param {string} phone - Phone number to validate
    * @returns {boolean} - Is valid phone number
@@ -204,15 +195,6 @@ export class ValidationHelper {
    */
   static isValidSessionId(sessionId) {
     return REGEX.SESSION_ID.test(sessionId);
-  }
-
-  /**
-   * Validate password strength
-   * @param {string} password - Password to validate
-   * @returns {boolean} - Is valid password
-   */
-  static isValidPassword(password) {
-    return REGEX.PASSWORD.test(password);
   }
 
   /**

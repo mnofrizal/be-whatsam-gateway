@@ -3,6 +3,12 @@ import express from "express";
 import UserController from "../controllers/user.controller.js";
 import { sessionLimiter } from "../middleware/rate-limit.js";
 import { authenticateJWT } from "../middleware/auth.js";
+import {
+  validateUpdateProfileMiddleware,
+  validateDeactivateAccountMiddleware,
+  validateUsageQueryMiddleware,
+  validateSessionsQueryMiddleware,
+} from "../validation/user.validation.js";
 
 const router = express.Router();
 
@@ -90,7 +96,12 @@ router.get("/profile", UserController.getUserProfile);
  *       401:
  *         description: Unauthorized
  */
-router.put("/profile", sessionLimiter, UserController.updateUserProfile);
+router.put(
+  "/profile",
+  sessionLimiter,
+  validateUpdateProfileMiddleware,
+  UserController.updateUserProfile
+);
 
 /**
  * @swagger
@@ -218,7 +229,7 @@ router.delete("/api-keys/:id", sessionLimiter, UserController.deleteApiKey);
  *       401:
  *         description: Unauthorized
  */
-router.get("/usage", UserController.getUserUsage);
+router.get("/usage", validateUsageQueryMiddleware, UserController.getUserUsage);
 
 /**
  * @swagger
@@ -328,7 +339,11 @@ router.get("/tier", UserController.getUserTier);
  *       401:
  *         description: Unauthorized
  */
-router.get("/sessions", UserController.getUserSessions);
+router.get(
+  "/sessions",
+  validateSessionsQueryMiddleware,
+  UserController.getUserSessions
+);
 
 /**
  * @swagger
@@ -357,6 +372,11 @@ router.get("/sessions", UserController.getUserSessions);
  *       401:
  *         description: Unauthorized
  */
-router.post("/deactivate", sessionLimiter, UserController.deactivateAccount);
+router.post(
+  "/deactivate",
+  sessionLimiter,
+  validateDeactivateAccountMiddleware,
+  UserController.deactivateAccount
+);
 
 export default router;

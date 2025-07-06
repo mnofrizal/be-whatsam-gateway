@@ -6,6 +6,7 @@
 
 - **Node.js:** 18+ (LTS version for stability)
 - **Express.js:** 4.18+ (Web framework)
+- **ES6 Modules:** Native ES modules with `"type": "module"` in package.json
 - **TypeScript:** Optional (can be added later for type safety)
 
 ### Database & Storage
@@ -42,22 +43,25 @@
 ```json
 {
   "dependencies": {
-    "express": "^4.18.2",
-    "prisma": "^5.7.0",
     "@prisma/client": "^5.7.0",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "ioredis": "^5.3.2",
     "axios": "^1.6.0",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
-    "winston": "^3.11.0",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.3.2",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "prisma": "^5.7.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "uuid": "^9.0.1",
-    "crypto": "^1.0.1"
+    "winston": "^3.11.0"
   }
 }
 ```
@@ -67,16 +71,59 @@
 ```json
 {
   "devDependencies": {
-    "nodemon": "^3.0.2",
-    "jest": "^29.7.0",
-    "supertest": "^6.3.3",
+    "@eslint/js": "^8.55.0",
     "eslint": "^8.55.0",
-    "prettier": "^3.1.0"
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "prettier": "^3.1.0",
+    "supertest": "^6.3.3"
   }
 }
 ```
 
 ## 🔧 Development Setup
+
+## 🔧 Current Project Configuration
+
+### Package.json Configuration
+
+```json
+{
+  "name": "whatsapp-gateway-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/app.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
+```
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev          # Start with nodemon for auto-restart
+npm start           # Production start
+
+# Database
+npm run db:generate # Generate Prisma client
+npm run db:migrate  # Run database migrations
+npm run db:deploy   # Deploy migrations to production
+npm run db:studio   # Open Prisma Studio
+npm run db:seed     # Seed database with initial data
+
+# Testing
+npm test            # Run Jest tests
+npm run test:watch  # Run tests in watch mode
+npm run test:coverage # Run tests with coverage
+
+# Code Quality
+npm run lint        # Run ESLint
+npm run lint:fix    # Fix ESLint issues
+npm run format      # Format code with Prettier
+```
 
 ### Environment Requirements
 
@@ -468,3 +515,78 @@ jobs:
 - **ESLint:** Airbnb style guide
 - **Prettier:** Consistent formatting
 - **Naming Conventions:** camelCase for variables, PascalCase for classes
+- **ES6 Modules:** Import/export syntax throughout the project
+- **Validation Architecture:** Express-validator in dedicated validation files
+- **Error Handling:** Custom error classes with proper HTTP status codes
+
+## 🏗️ Current Architecture Patterns
+
+### 1. Standalone Function Service Pattern
+
+```javascript
+// Services use standalone functions instead of classes
+export const registerWorker = async (workerId, endpoint, maxSessions) => {
+  // Implementation
+};
+
+export default {
+  registerWorker,
+  updateWorkerHeartbeat,
+  // Other functions
+};
+```
+
+### 2. Controller Data Normalization
+
+```javascript
+// Controllers handle data transformation before service calls
+const normalizeWorkerId = (workerId) => {
+  return workerId
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/_/g, "-") // Replace underscores with hyphens
+    .replace(/[^a-z0-9-]/g, "") // Remove invalid characters
+    .replace(/-+/g, "-") // Collapse multiple hyphens
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+};
+```
+
+### 3. Express-Validator Integration
+
+```javascript
+// Validation files with express-validator
+export const validateWorkerRegistration = [
+  body("workerId")
+    .isLength({ min: 1, max: 50 })
+    .withMessage("Worker ID must be between 1 and 50 characters"),
+  body("endpoint")
+    .isURL({ protocols: ["http", "https"] })
+    .withMessage("Endpoint must be a valid HTTP/HTTPS URL"),
+  body("maxSessions")
+    .isInt({ min: 1, max: 1000 })
+    .withMessage("Max sessions must be between 1 and 1000"),
+];
+```
+
+### 4. Enhanced Error Handling
+
+```javascript
+// Custom error classes for specific error types
+export class ConnectivityError extends Error {
+  constructor(message, originalError = null) {
+    super(message);
+    this.name = "ConnectivityError";
+    this.originalError = originalError;
+  }
+}
+
+// Error middleware processing
+if (err instanceof ConnectivityError) {
+  return res.status(503).json({
+    success: false,
+    error: err.message,
+    type: "connectivity_error",
+  });
+}
+```

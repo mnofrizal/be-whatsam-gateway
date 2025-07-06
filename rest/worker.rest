@@ -7,6 +7,125 @@
 @workerToken = worker-secret-token-change-in-production
 
 
+### ===========================================
+### WORKER ID NORMALIZATION TESTS
+### ===========================================
+
+### Test 1: Worker Registration with Spaces in WorkerId
+POST {{baseUrl}}/workers/register
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "Worker 001",
+  "endpoint": "http://localhost:8001",
+  "maxSessions": 50,
+  "description": "Test worker with spaces in ID"
+}
+
+### Expected Response: workerId should be normalized to "my-test-worker-001"
+### {
+###   "success": true,
+###   "data": {
+###     "workerId": "my-test-worker-001",
+###     "endpoint": "http://192.168.1.100:8001",
+###     "status": "ONLINE",
+###     "maxSessions": 50
+###   }
+### }
+
+### Test 2: Admin Add Worker with Special Characters and Underscores
+POST {{baseUrl}}/admin/workers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "workerId": "Worker@#$%^&*()_+Test_123",
+  "endpoint": "http://192.168.1.101:8001",
+  "maxSessions": 30,
+  "description": "Test worker with special characters and underscores"
+}
+
+### Expected Response: workerId should be normalized to "worker-test-123" (underscores converted to hyphens)
+### {
+###   "success": true,
+###   "data": {
+###     "workerId": "worker-test-123",
+###     "endpoint": "http://192.168.1.101:8001",
+###     "status": "ONLINE",
+###     "maxSessions": 30
+###   }
+### }
+
+### Test 3: Worker Registration with Mixed Case and Multiple Spaces
+POST {{baseUrl}}/workers/register
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "  PRODUCTION   Worker   SERVER   001  ",
+  "endpoint": "http://192.168.1.102:8001",
+  "maxSessions": 100,
+  "description": "Test worker with mixed case and multiple spaces"
+}
+
+### Expected Response: workerId should be normalized to "production-worker-server-001"
+### {
+###   "success": true,
+###   "data": {
+###     "workerId": "production-worker-server-001",
+###     "endpoint": "http://192.168.1.102:8001",
+###     "status": "ONLINE",
+###     "maxSessions": 100
+###   }
+### }
+
+### Test 4: Admin Add Worker with Leading/Trailing Hyphens
+POST {{baseUrl}}/admin/workers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "workerId": "---test-worker-dev---",
+  "endpoint": "http://192.168.1.103:8001",
+  "maxSessions": 25,
+  "description": "Test worker with leading/trailing hyphens"
+}
+
+### Expected Response: workerId should be normalized to "test-worker-dev"
+### {
+###   "success": true,
+###   "data": {
+###     "workerId": "test-worker-dev",
+###     "endpoint": "http://192.168.1.103:8001",
+###     "status": "ONLINE",
+###     "maxSessions": 25
+###   }
+### }
+
+### Test 5: Auto-generated WorkerId from Endpoint (should also be normalized)
+POST {{baseUrl}}/admin/workers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "endpoint": "http://my-test-server.example.com:8001",
+  "maxSessions": 40,
+  "description": "Test worker with auto-generated ID from endpoint"
+}
+
+### Expected Response: workerId should be auto-generated and normalized
+### {
+###   "success": true,
+###   "data": {
+###     "workerId": "worker-my-test-server-example-com-8001",
+###     "endpoint": "http://my-test-server.example.com:8001",
+###     "status": "ONLINE",
+###     "maxSessions": 40
+###   }
+### }
+
+
 ### ========================================
 ### WORKER SELF-REGISTRATION (Internal APIs)
 ### ========================================
@@ -24,7 +143,7 @@ Authorization: Bearer {{workerToken}}
 }
 
 ### 2. Worker Heartbeat Update
-PUT {{baseUrl}}/workers/worker-localhost-8001/heartbeat
+PUT {{baseUrl}}/workers/worker-001/heartbeat
 Content-Type: application/json
 Authorization: Bearer {{workerToken}}
 
@@ -70,7 +189,7 @@ Content-Type: application/json
 Authorization: Bearer {{adminToken}}
 
 {
-  "endpoint": "http://localhost:8002",
+  "endpoint": "http://localhost:8001",
   "maxSessions": 25,
   "description": "Worker with auto-generated ID from endpoint"
 }
@@ -92,7 +211,7 @@ Authorization: Bearer {{adminToken}}
 }
 
 ### 7. Remove Worker (Admin)
-DELETE {{baseUrl}}/workers/worker-localhost-8001
+DELETE {{baseUrl}}/workers/worker-001
 Authorization: Bearer {{adminToken}}
 
 ### 8. Get Worker Statistics (Admin)
@@ -204,9 +323,114 @@ Authorization: Bearer {{adminToken}}
   "maxSessions": 30,
   "description": "Invalid endpoint format test"
 }
+
+### 16. Test Connectivity Error - Unreachable Endpoint
+POST {{baseUrl}}/workers
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "endpoint": "http://invalid-endpoint:9999",
+  "maxSessions": 10,
+  "description": "Test connectivity error - should show user-friendly message"
+}
+
+### 17. Test Connection Refused Error
+POST {{baseUrl}}/workers
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "endpoint": "http://127.0.0.1:9999",
+  "maxSessions": 10,
+  "description": "Test connection refused - should show specific error message"
+}
+
+### 18. Test Worker Connectivity Endpoint - Valid URL
+POST {{baseUrl}}/workers/test
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "endpoint": "http://192.168.1.100:8001"
+}
+
+### 19. Test Worker Connectivity Endpoint - Invalid URL Format
+POST {{baseUrl}}/workers/test
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "endpoint": "not-a-valid-url"
+}
+
+### 20. Test Worker Connectivity Endpoint - Connection Refused
+POST {{baseUrl}}/workers/test
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "endpoint": "http://127.0.0.1:9999"
+}
+
+### 21. Test Worker Connectivity Endpoint - DNS Resolution Failed
+POST {{baseUrl}}/workers/test
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "endpoint": "http://non-existent-domain-12345.com:8001"
+}
+
 ### ========================================
 ### EXAMPLE RESPONSES
 ### ========================================
+
+### Connectivity Error Response (503 Service Unavailable):
+# {
+#   "success": false,
+#   "error": "Service Unavailable",
+#   "message": "Unable to connect to worker endpoint: Connection refused. Please verify the endpoint is correct and the service is running.",
+#   "details": {
+#     "endpoint": "http://127.0.0.1:9999",
+#     "errorType": "ECONNREFUSED"
+#   }
+# }
+
+### DNS Resolution Error Response (503 Service Unavailable):
+# {
+#   "success": false,
+#   "error": "Service Unavailable",
+#   "message": "Unable to connect to worker endpoint: DNS resolution failed. Please check the hostname and network connectivity.",
+#   "details": {
+#     "endpoint": "http://non-existent-domain.com:8001",
+#     "errorType": "ENOTFOUND"
+#   }
+# }
+
+### Timeout Error Response (503 Service Unavailable):
+# {
+#   "success": false,
+#   "error": "Service Unavailable",
+#   "message": "Unable to connect to worker endpoint: Connection timeout. The service may be overloaded or unreachable.",
+#   "details": {
+#     "endpoint": "http://slow-endpoint.com:8001",
+#     "errorType": "ETIMEDOUT"
+#   }
+# }
+
+### Validation Error Response (400 Bad Request):
+# {
+#   "success": false,
+#   "error": "Validation Error",
+#   "message": "Invalid input data",
+#   "details": [
+#     {
+#       "field": "endpoint",
+#       "message": "Endpoint must be a valid HTTP/HTTPS URL"
+#     }
+#   ]
+# }
 
 ### Worker Registration Response:
 # {

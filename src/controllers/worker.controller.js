@@ -5,6 +5,26 @@ import { asyncHandler } from "../middleware/error-handler.js";
 import workerService from "../services/worker.service.js";
 import logger from "../utils/logger.js";
 
+/**
+ * Normalize workerId by converting to lowercase and replacing spaces with hyphens
+ * @param {string} workerId - Original worker ID
+ * @returns {string} Normalized worker ID
+ */
+const normalizeWorkerId = (workerId) => {
+  if (!workerId || typeof workerId !== "string") {
+    return workerId;
+  }
+
+  return workerId
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-") // Replace one or more spaces with single hyphen
+    .replace(/_/g, "-") // Replace underscores with hyphens for consistent format
+    .replace(/[^a-z0-9-]/g, "") // Remove any characters that aren't letters, numbers, or hyphens
+    .replace(/-+/g, "-") // Replace multiple consecutive hyphens with single hyphen
+    .replace(/^-+|-+$/g, ""); // Remove leading and trailing hyphens
+};
+
 export class WorkerController {
   /**
    * Register a new worker (called by worker itself)
@@ -20,68 +40,13 @@ export class WorkerController {
       environment,
     } = req.body;
 
-    // Validate required fields
-    const validationErrors = [];
+    // Normalize workerId in controller layer
+    const originalWorkerId = workerId?.trim();
+    const normalizedWorkerId = normalizeWorkerId(originalWorkerId);
 
-    if (!workerId || !workerId.trim()) {
-      validationErrors.push({
-        field: "workerId",
-        message: "Worker ID is required",
-      });
-    }
-
-    if (!endpoint || !endpoint.trim()) {
-      validationErrors.push({
-        field: "endpoint",
-        message: "Endpoint is required",
-      });
-    } else {
-      // Validate endpoint format
-      try {
-        const url = new URL(endpoint.trim());
-        if (url.protocol !== "http:" && url.protocol !== "https:") {
-          validationErrors.push({
-            field: "endpoint",
-            message: "Endpoint must use http:// or https:// protocol",
-          });
-        }
-      } catch (error) {
-        validationErrors.push({
-          field: "endpoint",
-          message: "Invalid endpoint URL format",
-        });
-      }
-    }
-
-    if (maxSessions !== undefined && (maxSessions < 1 || maxSessions > 1000)) {
-      validationErrors.push({
-        field: "maxSessions",
-        message: "Max sessions must be between 1 and 1000",
-      });
-    }
-
-    // Validate environment if provided
-    if (
-      environment &&
-      !["DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION"].includes(
-        environment.toUpperCase()
-      )
-    ) {
-      validationErrors.push({
-        field: "environment",
-        message:
-          "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION",
-      });
-    }
-
-    if (validationErrors.length > 0) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(ApiResponse.createValidationErrorResponse(validationErrors));
-    }
-
+    // Validation is now handled by middleware
     const result = await workerService.registerWorker(
-      workerId.trim(),
+      normalizedWorkerId,
       endpoint.trim(),
       maxSessions || 50,
       description?.trim(),
@@ -90,7 +55,8 @@ export class WorkerController {
     );
 
     logger.info("Worker registration successful", {
-      workerId: result.id,
+      originalWorkerId,
+      normalizedWorkerId: result.id,
       endpoint: result.endpoint,
       ip: req.ip,
       userAgent: req.get("User-Agent"),
@@ -139,146 +105,7 @@ export class WorkerController {
     const { workerId } = req.params;
     const metrics = req.body;
 
-    // Validate workerId
-    if (!workerId || !workerId.trim()) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "workerId", message: "Worker ID is required" },
-          ])
-        );
-    }
-
-    // Validate metrics if provided
-    const validationErrors = [];
-
-    // Validate enhanced session structure if provided
-    if (metrics.sessions && typeof metrics.sessions === "object") {
-      const sessions = metrics.sessions;
-
-      // Validate session counts are non-negative integers
-      const sessionFields = [
-        "total",
-        "connected",
-        "disconnected",
-        "qr_required",
-        "reconnecting",
-        "error",
-        "maxSessions",
-      ];
-
-      for (const field of sessionFields) {
-        if (sessions[field] !== undefined) {
-          if (!Number.isInteger(sessions[field]) || sessions[field] < 0) {
-            validationErrors.push({
-              field: `sessions.${field}`,
-              message: `${field} must be a non-negative integer`,
-            });
-          }
-        }
-      }
-
-      // Validate session breakdown consistency
-      if (
-        sessions.total !== undefined &&
-        sessions.connected !== undefined &&
-        sessions.disconnected !== undefined &&
-        sessions.qr_required !== undefined &&
-        sessions.reconnecting !== undefined &&
-        sessions.error !== undefined
-      ) {
-        const calculatedTotal =
-          sessions.connected +
-          sessions.disconnected +
-          sessions.qr_required +
-          sessions.reconnecting +
-          sessions.error;
-
-        if (calculatedTotal !== sessions.total) {
-          validationErrors.push({
-            field: "sessions.total",
-            message: `Total sessions (${sessions.total}) does not match sum of breakdown (${calculatedTotal})`,
-          });
-        }
-      }
-
-      // Validate maxSessions is reasonable
-      if (
-        sessions.maxSessions !== undefined &&
-        (sessions.maxSessions < 1 || sessions.maxSessions > 1000)
-      ) {
-        validationErrors.push({
-          field: "sessions.maxSessions",
-          message: "Max sessions must be between 1 and 1000",
-        });
-      }
-
-      // Validate total doesn't exceed maxSessions
-      if (
-        sessions.total !== undefined &&
-        sessions.maxSessions !== undefined &&
-        sessions.total > sessions.maxSessions
-      ) {
-        validationErrors.push({
-          field: "sessions.total",
-          message: `Total sessions (${sessions.total}) cannot exceed max sessions (${sessions.maxSessions})`,
-        });
-      }
-    }
-
-    // Legacy sessionCount validation (backward compatibility)
-    if (metrics.sessionCount !== undefined && metrics.sessionCount < 0) {
-      validationErrors.push({
-        field: "sessionCount",
-        message: "Session count cannot be negative",
-      });
-    }
-
-    // Validate CPU usage
-    if (
-      metrics.cpuUsage !== undefined &&
-      (metrics.cpuUsage < 0 || metrics.cpuUsage > 100)
-    ) {
-      validationErrors.push({
-        field: "cpuUsage",
-        message: "CPU usage must be between 0 and 100",
-      });
-    }
-
-    // Validate memory usage
-    if (
-      metrics.memoryUsage !== undefined &&
-      (metrics.memoryUsage < 0 || metrics.memoryUsage > 100)
-    ) {
-      validationErrors.push({
-        field: "memoryUsage",
-        message: "Memory usage must be between 0 and 100",
-      });
-    }
-
-    // Validate uptime
-    if (metrics.uptime !== undefined && metrics.uptime < 0) {
-      validationErrors.push({
-        field: "uptime",
-        message: "Uptime cannot be negative",
-      });
-    }
-
-    // Validate message count
-    if (metrics.messageCount !== undefined && metrics.messageCount < 0) {
-      validationErrors.push({
-        field: "messageCount",
-        message: "Message count cannot be negative",
-      });
-    }
-
-    if (validationErrors.length > 0) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(ApiResponse.createValidationErrorResponse(validationErrors));
-    }
-
+    // Validation is now handled by middleware
     const worker = await workerService.updateWorkerHeartbeat(workerId, metrics);
 
     // Prepare response data
@@ -310,19 +137,9 @@ export class WorkerController {
   static getWorkers = asyncHandler(async (req, res) => {
     const { status, page = 1, limit = 20 } = req.query;
 
-    // Validate pagination parameters
+    // Validation is now handled by middleware
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
-
-    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "pagination", message: "Invalid pagination parameters" },
-          ])
-        );
-    }
 
     // Build filters
     const filters = {};
@@ -380,16 +197,7 @@ export class WorkerController {
   static getWorkerById = asyncHandler(async (req, res) => {
     const { workerId } = req.params;
 
-    if (!workerId || !workerId.trim()) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "workerId", message: "Worker ID is required" },
-          ])
-        );
-    }
-
+    // Validation is now handled by middleware
     const workers = await workerService.getWorkers();
     const worker = workers.find((w) => w.id === workerId);
 
@@ -443,73 +251,16 @@ export class WorkerController {
       environment,
     } = req.body;
 
-    // Validate required fields
-    const validationErrors = [];
-
-    if (!endpoint || !endpoint.trim()) {
-      validationErrors.push({
-        field: "endpoint",
-        message: "Endpoint is required",
-      });
-    } else {
-      // Validate endpoint format
-      try {
-        const url = new URL(endpoint.trim());
-        if (url.protocol !== "http:" && url.protocol !== "https:") {
-          validationErrors.push({
-            field: "endpoint",
-            message: "Endpoint must use http:// or https:// protocol",
-          });
-        }
-      } catch (error) {
-        validationErrors.push({
-          field: "endpoint",
-          message: "Invalid endpoint URL format",
-        });
-      }
-    }
-
-    // Validate workerId if provided
-    if (workerId && (!workerId.trim() || workerId.trim().length < 3)) {
-      validationErrors.push({
-        field: "workerId",
-        message: "Worker ID must be at least 3 characters long",
-      });
-    }
-
-    if (maxSessions !== undefined && (maxSessions < 1 || maxSessions > 1000)) {
-      validationErrors.push({
-        field: "maxSessions",
-        message: "Max sessions must be between 1 and 1000",
-      });
-    }
-
-    // Validate environment if provided
-    if (
-      environment &&
-      !["DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION"].includes(
-        environment.toUpperCase()
-      )
-    ) {
-      validationErrors.push({
-        field: "environment",
-        message:
-          "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION",
-      });
-    }
-
-    if (validationErrors.length > 0) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(ApiResponse.createValidationErrorResponse(validationErrors));
-    }
-
+    // Validation is now handled by middleware
     // Use provided workerId or generate from endpoint
-    let finalWorkerId = workerId?.trim();
+    let originalWorkerId = workerId?.trim();
+    let finalWorkerId = originalWorkerId;
+
     if (!finalWorkerId) {
       try {
         const url = new URL(endpoint.trim());
         finalWorkerId = `worker-${url.hostname.replace(/\./g, "-")}-${url.port || (url.protocol === "https:" ? "443" : "80")}`;
+        originalWorkerId = finalWorkerId; // For logging purposes
       } catch (error) {
         return res
           .status(HTTP_STATUS.BAD_REQUEST)
@@ -521,8 +272,11 @@ export class WorkerController {
       }
     }
 
+    // Normalize workerId in controller layer
+    const normalizedWorkerId = normalizeWorkerId(finalWorkerId);
+
     const result = await workerService.addWorker(
-      finalWorkerId,
+      normalizedWorkerId,
       endpoint.trim(),
       maxSessions || 50,
       description?.trim(),
@@ -531,7 +285,8 @@ export class WorkerController {
     );
 
     logger.info("Worker added manually by admin", {
-      workerId: result.id,
+      originalWorkerId,
+      normalizedWorkerId: result.id,
       endpoint: result.endpoint,
       adminUserId: req.user?.userId,
       ip: req.ip,
@@ -564,16 +319,7 @@ export class WorkerController {
   static removeWorker = asyncHandler(async (req, res) => {
     const { workerId } = req.params;
 
-    if (!workerId || !workerId.trim()) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "workerId", message: "Worker ID is required" },
-          ])
-        );
-    }
-
+    // Validation is now handled by middleware
     const result = await workerService.removeWorker(workerId);
 
     logger.info("Worker removed by admin", {
@@ -604,58 +350,14 @@ export class WorkerController {
    */
   static updateWorker = asyncHandler(async (req, res) => {
     const { workerId } = req.params;
-    const { maxSessions, description, version, environment } = req.body;
+    const updateData = req.body;
 
-    if (!workerId || !workerId.trim()) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "workerId", message: "Worker ID is required" },
-          ])
-        );
-    }
-
-    // Validate input fields
-    const validationErrors = [];
-
-    if (maxSessions !== undefined && (maxSessions < 1 || maxSessions > 1000)) {
-      validationErrors.push({
-        field: "maxSessions",
-        message: "Max sessions must be between 1 and 1000",
-      });
-    }
-
-    // Validate environment if provided
-    if (
-      environment &&
-      !["DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION"].includes(
-        environment.toUpperCase()
-      )
-    ) {
-      validationErrors.push({
-        field: "environment",
-        message:
-          "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION",
-      });
-    }
-
-    if (validationErrors.length > 0) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(ApiResponse.createValidationErrorResponse(validationErrors));
-    }
-
-    const result = await workerService.updateWorker(workerId, {
-      maxSessions,
-      description: description?.trim(),
-      version: version?.trim(),
-      environment: environment?.toUpperCase(),
-    });
+    // Validation is now handled by middleware
+    const result = await workerService.updateWorker(workerId, updateData);
 
     logger.info("Worker updated by admin", {
       workerId,
-      updates: { maxSessions, description, version, environment },
+      updateData,
       adminUserId: req.user?.userId,
       ip: req.ip,
       userAgent: req.get("User-Agent"),
@@ -716,16 +418,7 @@ export class WorkerController {
   static testWorkerConnectivity = asyncHandler(async (req, res) => {
     const { endpoint } = req.body;
 
-    if (!endpoint || !endpoint.trim()) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "endpoint", message: "Endpoint is required" },
-          ])
-        );
-    }
-
+    // Validation is now handled by middleware
     await workerService.testWorkerConnectivity(endpoint.trim());
 
     return res.status(HTTP_STATUS.OK).json(
@@ -749,16 +442,7 @@ export class WorkerController {
   static testSpecificWorkerConnectivity = asyncHandler(async (req, res) => {
     const { workerId } = req.params;
 
-    if (!workerId || !workerId.trim()) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json(
-          ApiResponse.createValidationErrorResponse([
-            { field: "workerId", message: "Worker ID is required" },
-          ])
-        );
-    }
-
+    // Validation is now handled by middleware
     // Get worker details first
     const workers = await workerService.getWorkers();
     const worker = workers.find((w) => w.id === workerId);

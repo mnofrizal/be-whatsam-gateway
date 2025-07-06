@@ -1,11 +1,9 @@
 // Authentication Middleware
-import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
-import { jwtConfig } from "../config/security.js";
+import prisma from "../database/client.js";
 import { UnauthorizedError, ForbiddenError } from "./error-handler.js";
+import { USER_ROLES } from "../utils/constants.js";
 import logger from "../utils/logger.js";
-
-const prisma = new PrismaClient();
+import { verifyToken } from "../utils/helpers/jwt.js";
 
 /**
  * JWT Authentication Middleware for Dashboard Access
@@ -22,53 +20,29 @@ export const authenticateJWT = async (req, res, next) => {
 
     const token = authHeader.substring(7);
 
-    // Verify JWT token
-    const payload = jwt.verify(token, jwtConfig.secret, {
-      issuer: jwtConfig.issuer,
-      audience: jwtConfig.audience,
-    });
-
-    // Check if user still exists and is active
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        tier: true,
-        isActive: true,
-        lastLoginAt: true,
-      },
-    });
-
-    if (!user || !user.isActive) {
-      throw new UnauthorizedError("User not found or account deactivated");
-    }
+    // Verify JWT token using JWT service
+    const tokenData = await verifyToken(token);
 
     // Attach user info to request
     req.user = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      tier: user.tier,
-      lastLoginAt: user.lastLoginAt,
+      userId: tokenData.user.id,
+      email: tokenData.user.email,
+      role: tokenData.user.role,
+      tier: tokenData.user.tier,
+      lastLoginAt: tokenData.user.lastLoginAt,
     };
 
     // Log successful authentication
     logger.info("JWT authentication successful", {
-      userId: user.id,
-      email: user.email,
+      userId: tokenData.user.id,
+      email: tokenData.user.email,
       ip: req.ip,
       userAgent: req.get("User-Agent"),
     });
 
     next();
   } catch (error) {
-    if (error.name === "JsonWebTokenError") {
-      return next(new UnauthorizedError("Invalid authentication token"));
-    } else if (error.name === "TokenExpiredError") {
-      return next(new UnauthorizedError("Authentication token has expired"));
-    } else if (error instanceof UnauthorizedError) {
+    if (error instanceof UnauthorizedError) {
       return next(error);
     } else {
       logger.error("JWT authentication error:", error);
@@ -293,7 +267,7 @@ export const requireSessionAccess = async (req, res, next) => {
     }
 
     // Admin users can access any session
-    if (req.user.role === "ADMINISTRATOR") {
+    if (req.user.role === USER_ROLES.ADMINISTRATOR) {
       return next();
     }
 
@@ -329,8 +303,11 @@ export const requireSessionAccess = async (req, res, next) => {
 };
 
 // Convenience middleware combinations
-export const requireAdmin = requireRole(["ADMIN"]);
-export const requireCustomer = requireRole(["CUSTOMER", "ADMIN"]);
+export const requireAdmin = requireRole([USER_ROLES.ADMINISTRATOR]);
+export const requireCustomer = requireRole([
+  USER_ROLES.USER,
+  USER_ROLES.ADMINISTRATOR,
+]);
 
 // Export middleware combinations for common use cases
 export const authMiddleware = {
