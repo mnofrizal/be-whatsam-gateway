@@ -108,12 +108,47 @@ Content-Type: application/json
 ### SESSION MANAGEMENT - PHASE 2 (CONNECT)
 ### ===========================================
 
-### 6. Connect Session to Worker (Phase 2)
+### 2. Create Session Card (Phase 1)
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{sessionId}}",
+  "name": "Personal WhatsApp",
+  "description": "My personal WhatsApp session for customer support"
+}
+
+
+### 3. Connect Session to Worker (Phase 2)
 POST {{baseUrl}}/sessions/{{sessionId}}/connect
 Authorization: Bearer {{jwtToken}}
 Content-Type: application/json
 
 {}
+
+### 13. Get Session QR Code
+GET {{baseUrl}}/sessions/{{sessionId}}/qr
+Authorization: Bearer {{jwtToken}}
+
+
+### 11. Get Session Details by ID
+GET {{baseUrl}}/sessions/{{sessionId}}
+Authorization: Bearer {{jwtToken}}
+
+
+### 25. Disconnect Session
+POST {{baseUrl}}/sessions/{{sessionId}}/disconnect
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{}
+
+
+### 4. DELETE Session to Worker (Phase 2)
+DELETE {{baseUrl}}/sessions/{{sessionId}}
+Authorization: Bearer {{jwtToken}}
+
 
 ### Expected Response:
 # {

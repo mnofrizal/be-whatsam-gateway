@@ -58,6 +58,19 @@ export const registerWorker = async (
     // Check for existing worker with same ID but different endpoint
     const existingWorkerWithId = await prisma.worker.findUnique({
       where: { id: workerId },
+      include: {
+        sessions: {
+          where: {
+            status: {
+              in: ["CONNECTED", "QR_REQUIRED", "RECONNECTING", "INIT"],
+            },
+          },
+          select: {
+            id: true,
+            status: true,
+          },
+        },
+      },
     });
 
     if (existingWorkerWithId && existingWorkerWithId.endpoint !== endpoint) {
@@ -65,6 +78,11 @@ export const registerWorker = async (
         `Worker ID ${workerId} is already registered with endpoint ${existingWorkerWithId.endpoint}`
       );
     }
+
+    // Detect recovery scenario
+    const isRecoveryScenario =
+      existingWorkerWithId && existingWorkerWithId.sessions.length > 0;
+    const assignedSessionCount = existingWorkerWithId?.sessions.length || 0;
 
     // Register or update worker in database
     const worker = await prisma.worker.upsert({
@@ -102,19 +120,35 @@ export const registerWorker = async (
         id: workerId,
         endpoint,
         status: "ONLINE",
-        sessionCount: 0,
+        sessionCount: assignedSessionCount,
         maxSessions,
         lastHeartbeat: new Date().toISOString(),
       })
     );
 
-    logger.info("Worker registered successfully", {
-      workerId,
-      endpoint,
-      maxSessions,
-    });
+    const registrationResult = {
+      ...worker,
+      recoveryRequired: isRecoveryScenario,
+      assignedSessionCount,
+    };
 
-    return worker;
+    if (isRecoveryScenario) {
+      logger.info("Worker registration detected recovery scenario", {
+        workerId,
+        endpoint,
+        assignedSessionCount,
+        recoveryRequired: true,
+      });
+    } else {
+      logger.info("Worker registered successfully", {
+        workerId,
+        endpoint,
+        maxSessions,
+        recoveryRequired: false,
+      });
+    }
+
+    return registrationResult;
   } catch (error) {
     logger.error("Worker registration failed:", error);
     throw error;
@@ -122,26 +156,25 @@ export const registerWorker = async (
 };
 
 /**
- * Update worker heartbeat and metrics
+ * Update worker heartbeat and metrics - Phase 2 Enhanced Push Heartbeat
  * @param {string} workerId - Worker identifier
- * @param {Object} metrics - Worker metrics with enhanced session breakdown
- * @param {Object} metrics.sessions - Session breakdown object
- * @param {number} metrics.sessions.total - Total sessions
- * @param {number} metrics.sessions.connected - Connected sessions
- * @param {number} metrics.sessions.disconnected - Disconnected sessions
- * @param {number} metrics.sessions.qr_required - Sessions waiting for QR scan
- * @param {number} metrics.sessions.reconnecting - Reconnecting sessions
- * @param {number} metrics.sessions.error - Sessions in error state
- * @param {number} metrics.sessions.maxSessions - Maximum sessions capacity
- * @param {number} metrics.cpuUsage - CPU usage percentage
- * @param {number} metrics.memoryUsage - Memory usage percentage
- * @param {number} metrics.uptime - Worker uptime in seconds
- * @param {number} metrics.messageCount - Total messages processed
- * @returns {Object} Updated worker data
+ * @param {Object} heartbeatData - Enhanced heartbeat data
+ * @param {string} heartbeatData.status - Worker status (ONLINE, OFFLINE, MAINTENANCE)
+ * @param {Array} heartbeatData.sessions - Array of session objects with individual statuses
+ * @param {Object} heartbeatData.capabilities - Worker capabilities object
+ * @param {Object} heartbeatData.metrics - Detailed metrics object
+ * @param {string} heartbeatData.lastActivity - ISO timestamp of last activity
+ * @returns {Object} Enhanced response with processing results
  */
-export const updateWorkerHeartbeat = async (workerId, metrics = {}) => {
+export const updateWorkerHeartbeat = async (workerId, heartbeatData = {}) => {
   try {
-    logger.info("Received heartbeat", { workerId, metrics });
+    logger.info("Received enhanced heartbeat", {
+      workerId,
+      hasSessionData: Array.isArray(heartbeatData.sessions),
+      sessionCount: heartbeatData.sessions?.length || 0,
+      hasCapabilities: !!heartbeatData.capabilities,
+      hasMetrics: !!heartbeatData.metrics,
+    });
 
     // Check if the worker exists before attempting to update
     const existingWorker = await prisma.worker.findUnique({
@@ -158,26 +191,57 @@ export const updateWorkerHeartbeat = async (workerId, metrics = {}) => {
       );
     }
 
+    // Initialize response counters
+    let sessionsProcessed = 0;
+    let sessionsSynced = 0;
+    let staleWorkersDetected = 0;
+
+    // Prepare worker update data
     const updateData = {
-      status: "ONLINE",
+      status: heartbeatData.status || "ONLINE",
       lastHeartbeat: new Date(),
       updatedAt: new Date(),
     };
 
-    // Handle enhanced session structure or fallback to legacy sessionCount
+    // Handle enhanced session data or fallback to legacy metrics
     let totalSessions = 0;
     let sessionBreakdown = null;
 
-    if (metrics.sessions && typeof metrics.sessions === "object") {
-      // Enhanced session structure
+    if (Array.isArray(heartbeatData.sessions)) {
+      // Phase 2: Enhanced session data with individual session statuses
+      totalSessions = heartbeatData.sessions.length;
+
+      // Process individual session statuses
+      const syncResult = await syncSessionStatuses(
+        workerId,
+        heartbeatData.sessions
+      );
+      sessionsProcessed = syncResult.processed;
+      sessionsSynced = syncResult.synced;
+
+      // Calculate session breakdown from individual sessions
+      sessionBreakdown = calculateSessionBreakdown(heartbeatData.sessions);
+
+      logger.info("Enhanced session data processed", {
+        workerId,
+        totalSessions,
+        sessionsProcessed,
+        sessionsSynced,
+        breakdown: sessionBreakdown,
+      });
+    } else if (
+      heartbeatData.metrics?.sessions &&
+      typeof heartbeatData.metrics.sessions === "object"
+    ) {
+      // Legacy enhanced session structure (from Phase 1)
       sessionBreakdown = {
-        total: metrics.sessions.total || 0,
-        connected: metrics.sessions.connected || 0,
-        disconnected: metrics.sessions.disconnected || 0,
-        qr_required: metrics.sessions.qr_required || 0,
-        reconnecting: metrics.sessions.reconnecting || 0,
-        error: metrics.sessions.error || 0,
-        maxSessions: metrics.sessions.maxSessions || 50,
+        total: heartbeatData.metrics.sessions.total || 0,
+        connected: heartbeatData.metrics.sessions.connected || 0,
+        disconnected: heartbeatData.metrics.sessions.disconnected || 0,
+        qr_required: heartbeatData.metrics.sessions.qr_required || 0,
+        reconnecting: heartbeatData.metrics.sessions.reconnecting || 0,
+        error: heartbeatData.metrics.sessions.error || 0,
+        maxSessions: heartbeatData.metrics.sessions.maxSessions || 50,
       };
       totalSessions = sessionBreakdown.total;
 
@@ -197,9 +261,9 @@ export const updateWorkerHeartbeat = async (workerId, metrics = {}) => {
           breakdown: sessionBreakdown,
         });
       }
-    } else if (metrics.sessionCount !== undefined) {
+    } else if (heartbeatData.metrics?.sessionCount !== undefined) {
       // Legacy sessionCount structure - maintain backward compatibility
-      totalSessions = metrics.sessionCount;
+      totalSessions = heartbeatData.metrics.sessionCount;
       sessionBreakdown = {
         total: totalSessions,
         connected: totalSessions, // Assume all are connected for legacy
@@ -214,10 +278,28 @@ export const updateWorkerHeartbeat = async (workerId, metrics = {}) => {
     // Update session count in database
     updateData.sessionCount = totalSessions;
 
-    // Update other metrics if provided
-    if (metrics.cpuUsage !== undefined) updateData.cpuUsage = metrics.cpuUsage;
-    if (metrics.memoryUsage !== undefined)
-      updateData.memoryUsage = metrics.memoryUsage;
+    // Handle capabilities update
+    if (heartbeatData.capabilities) {
+      if (heartbeatData.capabilities.maxSessions !== undefined) {
+        updateData.maxSessions = heartbeatData.capabilities.maxSessions;
+      }
+      if (heartbeatData.capabilities.version !== undefined) {
+        updateData.version = heartbeatData.capabilities.version;
+      }
+      if (heartbeatData.capabilities.environment !== undefined) {
+        updateData.environment = heartbeatData.capabilities.environment;
+      }
+    }
+
+    // Handle enhanced metrics
+    if (heartbeatData.metrics) {
+      if (heartbeatData.metrics.cpuUsage !== undefined) {
+        updateData.cpuUsage = heartbeatData.metrics.cpuUsage;
+      }
+      if (heartbeatData.metrics.memoryUsage !== undefined) {
+        updateData.memoryUsage = heartbeatData.metrics.memoryUsage;
+      }
+    }
 
     // Update database
     const worker = await prisma.worker.update({
@@ -225,28 +307,32 @@ export const updateWorkerHeartbeat = async (workerId, metrics = {}) => {
       data: updateData,
     });
 
-    // Store metrics for analytics if provided
-    if (Object.keys(metrics).length > 0) {
+    // Store enhanced metrics for analytics if provided
+    if (
+      heartbeatData.metrics &&
+      Object.keys(heartbeatData.metrics).length > 0
+    ) {
       await prisma.workerMetric.create({
         data: {
           workerId,
-          cpuUsage: metrics.cpuUsage || 0,
-          memoryUsage: metrics.memoryUsage || 0,
+          cpuUsage: heartbeatData.metrics.cpuUsage || 0,
+          memoryUsage: heartbeatData.metrics.memoryUsage || 0,
           sessionCount: totalSessions,
-          messageCount: metrics.messageCount || 0,
-          uptime: metrics.uptime || 0,
+          messageCount: heartbeatData.metrics.messageCount || 0,
+          uptime: heartbeatData.metrics.uptime || 0,
         },
       });
     }
 
-    // Update Redis cache with enhanced session data
+    // Update Redis cache with enhanced data
     const redisWorkerData = {
       id: workerId,
       endpoint: worker.endpoint,
-      status: "ONLINE",
+      status: worker.status,
       sessionCount: totalSessions,
       maxSessions: worker.maxSessions,
       lastHeartbeat: new Date().toISOString(),
+      lastActivity: heartbeatData.lastActivity || new Date().toISOString(),
     };
 
     // Add session breakdown to Redis if available
@@ -254,25 +340,47 @@ export const updateWorkerHeartbeat = async (workerId, metrics = {}) => {
       redisWorkerData.sessions = sessionBreakdown;
     }
 
+    // Add capabilities to Redis if available
+    if (heartbeatData.capabilities) {
+      redisWorkerData.capabilities = heartbeatData.capabilities;
+    }
+
     await redis.hset("workers", workerId, JSON.stringify(redisWorkerData));
 
-    logger.debug("Worker heartbeat updated successfully", {
+    // Detect stale workers (Phase 2 feature)
+    staleWorkersDetected = await detectStaleWorkers();
+
+    logger.debug("Enhanced worker heartbeat updated successfully", {
       workerId,
       totalSessions,
+      sessionsProcessed,
+      sessionsSynced,
+      staleWorkersDetected,
+      hasCapabilities: !!heartbeatData.capabilities,
       sessionBreakdown: sessionBreakdown ? "enhanced" : "legacy",
     });
 
     return {
       ...worker,
       sessionBreakdown,
+      processing: {
+        sessionsProcessed,
+        sessionsSynced,
+        staleWorkersDetected,
+      },
+      capabilities: heartbeatData.capabilities || null,
+      lastActivity: heartbeatData.lastActivity || new Date().toISOString(),
     };
   } catch (error) {
     if (!(error instanceof NotFoundError)) {
-      logger.error("Worker heartbeat update failed with an unexpected error:", {
-        workerId,
-        errorMessage: error.message,
-        stack: error.stack,
-      });
+      logger.error(
+        "Enhanced worker heartbeat update failed with an unexpected error:",
+        {
+          workerId,
+          errorMessage: error.message,
+          stack: error.stack,
+        }
+      );
     }
     throw error;
   }
@@ -1154,6 +1262,462 @@ export const decrementWorkerSessionCount = async (workerId) => {
   }
 };
 
+/**
+ * Get assigned sessions for worker recovery
+ * @param {string} workerId - Worker ID
+ * @returns {Promise<Object>} Assigned sessions data
+ */
+export const getAssignedSessions = async (workerId) => {
+  try {
+    logger.info(`Getting assigned sessions for worker: ${workerId}`);
+
+    // Get worker to verify it exists
+    const worker = await prisma.worker.findUnique({
+      where: { id: workerId },
+    });
+
+    if (!worker) {
+      throw new NotFoundError(`Worker not found: ${workerId}`);
+    }
+
+    // Get all sessions assigned to this worker
+    const sessions = await prisma.session.findMany({
+      where: {
+        workerId: workerId,
+        status: {
+          in: ["CONNECTED", "QR_REQUIRED", "RECONNECTING", "INIT"],
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        phoneNumber: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        lastSeenAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            tier: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+
+    const sessionCount = sessions.length;
+    logger.info(
+      `Found ${sessionCount} assigned sessions for worker ${workerId}`
+    );
+
+    return {
+      workerId,
+      sessionCount,
+      sessions: sessions.map((session) => ({
+        sessionId: session.id,
+        userId: session.userId,
+        sessionName: session.name,
+        phoneNumber: session.phoneNumber,
+        status: session.status,
+        userEmail: session.user.email,
+        userTier: session.user.tier,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        lastSeenAt: session.lastSeenAt,
+      })),
+      retrievedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    logger.error(`Error getting assigned sessions for worker ${workerId}:`, {
+      error: error.message,
+      stack: error.stack,
+    });
+
+    if (error instanceof NotFoundError) {
+      throw error;
+    }
+
+    throw new Error(`Failed to get assigned sessions: ${error.message}`);
+  }
+};
+
+/**
+ * Handle session recovery status from worker
+ * @param {string} workerId - Worker ID
+ * @param {Object} recoveryData - Recovery results data
+ * @returns {Promise<Object>} Processing result
+ */
+export const handleRecoveryStatus = async (workerId, recoveryData) => {
+  try {
+    logger.info(`Processing recovery status for worker: ${workerId}`, {
+      totalSessions: recoveryData.totalSessions,
+      successfulRecoveries: recoveryData.successfulRecoveries,
+      failedRecoveries: recoveryData.failedRecoveries,
+    });
+
+    // Verify worker exists
+    const worker = await prisma.worker.findUnique({
+      where: { id: workerId },
+    });
+
+    if (!worker) {
+      throw new NotFoundError(`Worker not found: ${workerId}`);
+    }
+
+    const {
+      recoveryResults,
+      totalSessions,
+      successfulRecoveries,
+      failedRecoveries,
+    } = recoveryData;
+    const processedResults = [];
+    const failedSessions = [];
+
+    // Process each recovery result
+    for (const result of recoveryResults) {
+      const { sessionId, status, error, recoveredAt } = result;
+
+      try {
+        if (status === "SUCCESS") {
+          // Update session status to CONNECTED if recovery was successful
+          await prisma.session.update({
+            where: { id: sessionId },
+            data: {
+              status: "CONNECTED",
+              lastSeenAt: recoveredAt ? new Date(recoveredAt) : new Date(),
+              updatedAt: new Date(),
+            },
+          });
+
+          // Update Redis session routing
+          await redis.hset("session_routing", sessionId, workerId);
+
+          processedResults.push({
+            sessionId,
+            status: "PROCESSED",
+            action: "UPDATED_TO_CONNECTED",
+          });
+
+          logger.info(`Session ${sessionId} recovery success processed`);
+        } else if (status === "FAILED") {
+          // Update session status to ERROR for failed recoveries
+          await prisma.session.update({
+            where: { id: sessionId },
+            data: {
+              status: "ERROR",
+              updatedAt: new Date(),
+            },
+          });
+
+          // Remove from Redis routing
+          await redis.hdel("session_routing", sessionId);
+
+          failedSessions.push({
+            sessionId,
+            error: error || "Recovery failed",
+          });
+
+          processedResults.push({
+            sessionId,
+            status: "PROCESSED",
+            action: "UPDATED_TO_ERROR",
+            error,
+          });
+
+          logger.warn(`Session ${sessionId} recovery failed:`, error);
+        } else if (status === "SKIPPED") {
+          // Log skipped sessions but don't update status
+          processedResults.push({
+            sessionId,
+            status: "SKIPPED",
+            action: "NO_ACTION",
+          });
+
+          logger.info(`Session ${sessionId} recovery skipped`);
+        }
+      } catch (sessionError) {
+        logger.error(
+          `Error processing recovery result for session ${sessionId}:`,
+          {
+            error: sessionError.message,
+            stack: sessionError.stack,
+          }
+        );
+
+        processedResults.push({
+          sessionId,
+          status: "ERROR",
+          action: "PROCESSING_FAILED",
+          error: sessionError.message,
+        });
+      }
+    }
+
+    // Update worker session count based on successful recoveries
+    if (successfulRecoveries > 0) {
+      await prisma.worker.update({
+        where: { id: workerId },
+        data: {
+          sessionCount: successfulRecoveries,
+          lastHeartbeat: new Date(),
+        },
+      });
+
+      // Update Redis worker data
+      const workerData = await redis.hget("workers", workerId);
+      if (workerData) {
+        const parsed = JSON.parse(workerData);
+        parsed.sessionCount = successfulRecoveries;
+        parsed.lastHeartbeat = new Date().toISOString();
+        await redis.hset("workers", workerId, JSON.stringify(parsed));
+      }
+    }
+
+    const summary = {
+      workerId,
+      totalSessions,
+      successfulRecoveries,
+      failedRecoveries,
+      processedResults,
+      failedSessions,
+      processedAt: new Date().toISOString(),
+    };
+
+    logger.info(
+      `Recovery status processing completed for worker ${workerId}:`,
+      {
+        totalProcessed: processedResults.length,
+        successful: successfulRecoveries,
+        failed: failedRecoveries,
+      }
+    );
+
+    return summary;
+  } catch (error) {
+    logger.error(`Error handling recovery status for worker ${workerId}:`, {
+      error: error.message,
+      stack: error.stack,
+    });
+
+    if (error instanceof NotFoundError) {
+      throw error;
+    }
+
+    throw new Error(`Failed to handle recovery status: ${error.message}`);
+  }
+};
+
+/**
+ * Sync individual session statuses from worker heartbeat data - Phase 2 Feature
+ * @param {string} workerId - Worker ID
+ * @param {Array} sessions - Array of session objects from worker
+ * @returns {Object} Sync results with processed and synced counts
+ */
+export const syncSessionStatuses = async (workerId, sessions) => {
+  try {
+    let processed = 0;
+    let synced = 0;
+
+    logger.debug(
+      `Syncing ${sessions.length} session statuses for worker ${workerId}`
+    );
+
+    // Process each session status update
+    for (const sessionData of sessions) {
+      try {
+        processed++;
+
+        const { sessionId, status, phoneNumber, lastActivity } = sessionData;
+
+        // Validate session belongs to this worker
+        const existingSession = await prisma.session.findFirst({
+          where: {
+            id: sessionId,
+            workerId: workerId,
+          },
+        });
+
+        if (!existingSession) {
+          logger.warn(
+            `Session ${sessionId} not found or not assigned to worker ${workerId}`
+          );
+          continue;
+        }
+
+        // Prepare update data
+        const updateData = {
+          updatedAt: new Date(),
+        };
+
+        // Update status if different
+        if (status && status !== existingSession.status) {
+          updateData.status = status.toUpperCase();
+          logger.debug(
+            `Updating session ${sessionId} status: ${existingSession.status} → ${status}`
+          );
+        }
+
+        // Update phone number if provided
+        if (phoneNumber && phoneNumber !== existingSession.phoneNumber) {
+          updateData.phoneNumber = phoneNumber;
+        }
+
+        // Update last activity if provided
+        if (lastActivity) {
+          updateData.lastSeenAt = new Date(lastActivity);
+        }
+
+        // Only update if there are changes
+        if (Object.keys(updateData).length > 1) {
+          // More than just updatedAt
+          await prisma.session.update({
+            where: { id: sessionId },
+            data: updateData,
+          });
+
+          // Update Redis session routing if session is active
+          if (
+            updateData.status &&
+            ["CONNECTED", "QR_REQUIRED", "RECONNECTING"].includes(
+              updateData.status
+            )
+          ) {
+            await redis.hset("session_routing", sessionId, workerId);
+          } else if (
+            updateData.status === "DISCONNECTED" ||
+            updateData.status === "ERROR"
+          ) {
+            await redis.hdel("session_routing", sessionId);
+          }
+
+          synced++;
+        }
+      } catch (sessionError) {
+        logger.error(`Error syncing session ${sessionData.sessionId}:`, {
+          error: sessionError.message,
+          sessionData,
+        });
+      }
+    }
+
+    logger.info(`Session status sync completed for worker ${workerId}`, {
+      processed,
+      synced,
+      skipped: processed - synced,
+    });
+
+    return { processed, synced };
+  } catch (error) {
+    logger.error(
+      `Error syncing session statuses for worker ${workerId}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+/**
+ * Calculate session breakdown from individual session data - Phase 2 Feature
+ * @param {Array} sessions - Array of session objects
+ * @returns {Object} Session breakdown object
+ */
+export const calculateSessionBreakdown = (sessions) => {
+  const breakdown = {
+    total: sessions.length,
+    connected: 0,
+    disconnected: 0,
+    qr_required: 0,
+    reconnecting: 0,
+    error: 0,
+    init: 0,
+  };
+
+  sessions.forEach((session) => {
+    const status = session.status?.toLowerCase() || "disconnected";
+
+    switch (status) {
+      case "connected":
+        breakdown.connected++;
+        break;
+      case "disconnected":
+        breakdown.disconnected++;
+        break;
+      case "qr_required":
+        breakdown.qr_required++;
+        break;
+      case "reconnecting":
+        breakdown.reconnecting++;
+        break;
+      case "error":
+        breakdown.error++;
+        break;
+      case "init":
+        breakdown.init++;
+        break;
+      default:
+        breakdown.disconnected++; // Default to disconnected for unknown statuses
+    }
+  });
+
+  return breakdown;
+};
+
+/**
+ * Detect stale workers based on heartbeat timestamps - Phase 2 Feature
+ * Replaces active health checking with passive monitoring
+ * @returns {number} Number of stale workers detected and marked offline
+ */
+export const detectStaleWorkers = async () => {
+  try {
+    const staleThreshold = 2 * 60 * 1000; // 2 minutes in milliseconds
+    const cutoffTime = new Date(Date.now() - staleThreshold);
+
+    // Find workers that haven't sent heartbeat in the threshold time
+    const staleWorkers = await prisma.worker.findMany({
+      where: {
+        status: "ONLINE",
+        lastHeartbeat: {
+          lt: cutoffTime,
+        },
+      },
+    });
+
+    let staleCount = 0;
+
+    for (const worker of staleWorkers) {
+      try {
+        logger.warn(`Detected stale worker: ${worker.id}`, {
+          lastHeartbeat: worker.lastHeartbeat,
+          staleFor: Date.now() - new Date(worker.lastHeartbeat).getTime(),
+        });
+
+        // Mark worker as offline
+        await markWorkerOffline(worker.id);
+        staleCount++;
+      } catch (error) {
+        logger.error(
+          `Error marking stale worker ${worker.id} as offline:`,
+          error
+        );
+      }
+    }
+
+    if (staleCount > 0) {
+      logger.info(`Detected and marked ${staleCount} stale workers as offline`);
+    }
+
+    return staleCount;
+  } catch (error) {
+    logger.error("Error detecting stale workers:", error);
+    return 0;
+  }
+};
+
 // Export all functions as default object for compatibility
 export default {
   registerWorker,
@@ -1175,4 +1739,9 @@ export default {
   checkWorkerHealth,
   testWorkerConnectivity,
   getWorkerStatistics,
+  getAssignedSessions,
+  handleRecoveryStatus,
+  syncSessionStatuses,
+  calculateSessionBreakdown,
+  detectStaleWorkers,
 };

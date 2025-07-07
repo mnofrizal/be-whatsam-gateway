@@ -11,6 +11,7 @@ import {
   validateUpdateWorker,
   validateTestWorkerConnectivity,
   validateWorkerFilters,
+  validateSessionRecoveryStatus,
 } from "../validation/worker.validation.js";
 
 const router = express.Router();
@@ -32,6 +33,24 @@ router.put(
   validateWorkerIdParam,
   validateWorkerHeartbeat,
   WorkerController.updateHeartbeat
+);
+
+// Session Recovery Endpoints (Internal - Worker to Backend)
+// GET /api/v1/workers/:workerId/sessions/assigned - Worker requests assigned sessions for recovery
+router.get(
+  "/:workerId/sessions/assigned",
+  authenticateWorker,
+  validateWorkerIdParam,
+  WorkerController.getAssignedSessions
+);
+
+// POST /api/v1/workers/:workerId/sessions/recovery-status - Worker reports recovery results
+router.post(
+  "/:workerId/sessions/recovery-status",
+  authenticateWorker,
+  validateWorkerIdParam,
+  validateSessionRecoveryStatus,
+  WorkerController.handleRecoveryStatus
 );
 
 // Admin Worker Management (Requires JWT Authentication)

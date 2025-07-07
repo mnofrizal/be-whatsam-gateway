@@ -72,6 +72,8 @@ export class WorkerController {
           version: result.version,
           environment: result.environment,
           registeredAt: result.createdAt,
+          recoveryRequired: result.recoveryRequired,
+          assignedSessionCount: result.assignedSessionCount,
         },
         {
           message: "Worker registered successfully",
@@ -81,51 +83,84 @@ export class WorkerController {
   });
 
   /**
-   * Update worker heartbeat (called by worker itself)
+   * Update worker heartbeat with enhanced session data (called by worker itself)
    * PUT /api/v1/admin/workers/:workerId/heartbeat
    *
-   * Enhanced to support detailed session breakdown:
+   * Phase 2: Enhanced Push Heartbeat - supports rich session data:
    * {
-   *   "sessions": {
-   *     "total": 25,
-   *     "connected": 20,
-   *     "disconnected": 2,
-   *     "qr_required": 2,
-   *     "reconnecting": 1,
-   *     "error": 0,
-   *     "maxSessions": 50
+   *   "status": "ONLINE",
+   *   "sessions": [
+   *     {
+   *       "sessionId": "user123-personal",
+   *       "status": "CONNECTED",
+   *       "phoneNumber": "+6281234567890",
+   *       "lastActivity": "2024-01-15T10:30:00Z"
+   *     }
+   *   ],
+   *   "capabilities": {
+   *     "maxSessions": 50,
+   *     "supportedFeatures": ["text", "media", "groups"],
+   *     "version": "1.2.0"
    *   },
-   *   "cpuUsage": 45.5,
-   *   "memoryUsage": 67.8,
-   *   "uptime": 3600,
-   *   "messageCount": 150
+   *   "metrics": {
+   *     "cpuUsage": 45.5,
+   *     "memoryUsage": 67.8,
+   *     "uptime": 3600,
+   *     "messageCount": 150,
+   *     "totalSessions": 25,
+   *     "activeSessions": 20
+   *   },
+   *   "lastActivity": "2024-01-15T10:30:00Z"
    * }
    */
   static updateHeartbeat = asyncHandler(async (req, res) => {
     const { workerId } = req.params;
-    const metrics = req.body;
+    const { status, sessions, capabilities, metrics, lastActivity } = req.body;
+
+    const normalizedWorkerId = normalizeWorkerId(workerId);
 
     // Validation is now handled by middleware
-    const worker = await workerService.updateWorkerHeartbeat(workerId, metrics);
+    const result = await workerService.updateWorkerHeartbeat(
+      normalizedWorkerId,
+      {
+        status,
+        sessions,
+        capabilities,
+        metrics,
+        lastActivity,
+      }
+    );
 
-    // Prepare response data
+    logger.info("Enhanced heartbeat received", {
+      workerId: normalizedWorkerId,
+      sessionCount: sessions?.length || 0,
+      workerStatus: status,
+      cpuUsage: metrics?.cpuUsage,
+      memoryUsage: metrics?.memoryUsage,
+      ip: req.ip,
+    });
+
+    // Prepare enhanced response data
     const responseData = {
-      workerId: worker.id,
-      status: worker.status,
-      lastHeartbeat: worker.lastHeartbeat,
-      sessionCount: worker.sessionCount,
-      cpuUsage: worker.cpuUsage,
-      memoryUsage: worker.memoryUsage,
+      workerId: result.workerId,
+      status: result.status,
+      lastHeartbeat: result.lastHeartbeat,
+      sessionCount: result.sessionCount,
+      sessionsProcessed: result.sessionsProcessed || 0,
+      sessionsSynced: result.sessionsSynced || 0,
+      staleWorkersDetected: result.staleWorkersDetected || 0,
+      metrics: {
+        cpuUsage: result.cpuUsage,
+        memoryUsage: result.memoryUsage,
+        uptime: metrics?.uptime,
+        messageCount: metrics?.messageCount,
+      },
+      capabilities: result.capabilities,
     };
-
-    // Include session breakdown in response if available
-    if (worker.sessionBreakdown) {
-      responseData.sessions = worker.sessionBreakdown;
-    }
 
     return res.status(HTTP_STATUS.OK).json(
       ApiResponse.createSuccessResponse(responseData, {
-        message: "Heartbeat updated successfully",
+        message: "Enhanced heartbeat processed successfully",
       })
     );
   });
@@ -618,6 +653,44 @@ export class WorkerController {
         isRunning,
         interval: workerService.healthCheckInterval,
         status: isRunning ? "active" : "inactive",
+      })
+    );
+  });
+  /**
+   * Get assigned sessions for worker recovery
+   * GET /api/v1/workers/:workerId/sessions/assigned
+   */
+  static getAssignedSessions = asyncHandler(async (req, res) => {
+    const { workerId } = req.params;
+
+    const normalizedWorkerId = normalizeWorkerId(workerId);
+    const assignedSessions =
+      await workerService.getAssignedSessions(normalizedWorkerId);
+
+    return res.status(HTTP_STATUS.OK).json(
+      ApiResponse.createSuccessResponse(assignedSessions, {
+        message: "Assigned sessions retrieved successfully",
+      })
+    );
+  });
+
+  /**
+   * Handle session recovery status from worker
+   * POST /api/v1/workers/:workerId/sessions/recovery-status
+   */
+  static handleRecoveryStatus = asyncHandler(async (req, res) => {
+    const { workerId } = req.params;
+    const recoveryData = req.body;
+
+    const normalizedWorkerId = normalizeWorkerId(workerId);
+    const result = await workerService.handleRecoveryStatus(
+      normalizedWorkerId,
+      recoveryData
+    );
+
+    return res.status(HTTP_STATUS.OK).json(
+      ApiResponse.createSuccessResponse(result, {
+        message: "Recovery status processed successfully",
       })
     );
   });

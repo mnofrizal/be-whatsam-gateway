@@ -10,7 +10,7 @@
 ### ===========================================
 ### WORKER ID NORMALIZATION TESTS
 ### ===========================================
-
+@baseUrl = http://localhost:8000/api/v1
 ### Test 1: Worker Registration with Spaces in WorkerId
 POST {{baseUrl}}/workers/register
 Authorization: Bearer {{workerToken}}
@@ -142,26 +142,178 @@ Authorization: Bearer {{workerToken}}
   "description": "Primary worker node"
 }
 
-### 2. Worker Heartbeat Update
+### 2A. Enhanced Worker Heartbeat (Phase 2 - Rich Session Data)
 PUT {{baseUrl}}/workers/worker-001/heartbeat
 Content-Type: application/json
 Authorization: Bearer {{workerToken}}
 
 {
+  "sessions": [
+    {
+      "sessionId": "user123-personal",
+      "status": "CONNECTED",
+      "phoneNumber": "+6281234567890",
+      "lastActivity": "2024-01-15T10:30:00.000Z"
+    },
+    {
+      "sessionId": "user456-business",
+      "status": "QR_REQUIRED",
+      "phoneNumber": null,
+      "lastActivity": "2024-01-15T10:25:00.000Z"
+    },
+    {
+      "sessionId": "user789-support",
+      "status": "RECONNECTING",
+      "phoneNumber": "+6287654321098",
+      "lastActivity": "2024-01-15T10:28:00.000Z"
+    }
+  ],
+  "capabilities": {
+    "maxSessions": 50,
+    "version": "1.2.0",
+    "environment": "PRODUCTION",
+    "supportedFeatures": ["qr_generation", "media_upload", "group_messaging"]
+  },
+  "metrics": {
+    "cpuUsage": 45.5,
+    "memoryUsage": 67.8,
+    "uptime": 86400,
+    "messageCount": 1250,
+    "totalSessions": 3,
+    "activeSessions": 2
+  },
+  "lastActivity": "2024-01-15T10:30:00.000Z"
+}
+
+### Expected Enhanced Response:
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "worker-001",
+#     "status": "ONLINE",
+#     "sessionCount": 3,
+#     "lastHeartbeat": "2024-01-15T10:30:00.000Z",
+#     "sessionsProcessed": 3,
+#     "sessionsSynced": 3,
+#     "staleWorkersDetected": 0,
+#     "sessionBreakdown": {
+#       "connected": 1,
+#       "qr_required": 1,
+#       "reconnecting": 1,
+#       "disconnected": 0,
+#       "error": 0,
+#       "init": 0
+#     },
+#     "metrics": {
+#       "cpuUsage": 45.5,
+#       "memoryUsage": 67.8,
+#       "uptime": 86400,
+#       "messageCount": 1250,
+#       "totalSessions": 3,
+#       "activeSessions": 2
+#     }
+#   },
+#   "message": "Worker heartbeat updated successfully with enhanced session data"
+# }
+
+### 2B. Legacy Worker Heartbeat (Backward Compatibility)
+PUT {{baseUrl}}/workers/worker-002/heartbeat
+Content-Type: application/json
+Authorization: Bearer {{workerToken}}
+
+{
   "status": "ONLINE",
-  "cpuUsage": 45.5,
-  "memoryUsage": 67.8,
-  "uptime": 3600,
-  "messageCount": 1250,
+  "cpuUsage": 35.2,
+  "memoryUsage": 58.4,
+  "uptime": 7200,
+  "messageCount": 850,
   "sessions": {
-    "total": 24,
-    "connected": 20,
+    "total": 15,
+    "connected": 12,
     "disconnected": 2,
-    "qr_required": 2,
+    "qr_required": 1,
     "reconnecting": 0,
     "error": 0
   }
 }
+
+### Expected Legacy Response:
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "worker-002",
+#     "status": "ONLINE",
+#     "sessionCount": 15,
+#     "lastHeartbeat": "2024-01-15T10:30:00.000Z",
+#     "sessionsProcessed": 0,
+#     "sessionsSynced": 0,
+#     "staleWorkersDetected": 0,
+#     "sessionBreakdown": {
+#       "connected": 12,
+#       "disconnected": 2,
+#       "qr_required": 1,
+#       "reconnecting": 0,
+#       "error": 0,
+#       "init": 0
+#     },
+#     "metrics": {
+#       "cpuUsage": 35.2,
+#       "memoryUsage": 58.4,
+#       "uptime": 7200,
+#       "messageCount": 850
+#     }
+#   },
+#   "message": "Worker heartbeat updated successfully"
+# }
+
+### 2C. Mixed Format Heartbeat (Testing Compatibility)
+PUT {{baseUrl}}/workers/worker-003/heartbeat
+Content-Type: application/json
+Authorization: Bearer {{workerToken}}
+
+{
+  "sessions": [
+    {
+      "sessionId": "mixed-session-001",
+      "status": "CONNECTED",
+      "phoneNumber": "+6281111111111",
+      "lastActivity": "2024-01-15T10:30:00.000Z"
+    }
+  ],
+  "cpuUsage": 25.8,
+  "memoryUsage": 42.1,
+  "uptime": 3600,
+  "messageCount": 500
+}
+
+### Expected Mixed Response:
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "worker-003",
+#     "status": "ONLINE",
+#     "sessionCount": 1,
+#     "lastHeartbeat": "2024-01-15T10:30:00.000Z",
+#     "sessionsProcessed": 1,
+#     "sessionsSynced": 1,
+#     "staleWorkersDetected": 0,
+#     "sessionBreakdown": {
+#       "connected": 1,
+#       "disconnected": 0,
+#       "qr_required": 0,
+#       "reconnecting": 0,
+#       "error": 0,
+#       "init": 0
+#     },
+#     "metrics": {
+#       "cpuUsage": 25.8,
+#       "memoryUsage": 42.1,
+#       "uptime": 3600,
+#       "messageCount": 500
+#     }
+#   },
+#   "message": "Worker heartbeat updated successfully with enhanced session data"
+# }
 
 ### ========================================
 ### ADMIN WORKER MANAGEMENT (JWT Required)
@@ -587,4 +739,583 @@ Content-Type: application/json
 # {
 #   "success": false,
 #   "error": "Worker connectivity test failed: Connection refused"
+# }
+
+### ========================================
+### SESSION RECOVERY EXAMPLES & SCENARIOS
+### ========================================
+
+### SCENARIO 1: Fresh Worker Startup (No Recovery Needed)
+### When a worker starts for the first time, no sessions are assigned
+
+### Example 1: Fresh Worker Registration
+POST {{baseUrl}}/workers/register
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-fresh-001",
+  "endpoint": "http://192.168.1.100:8001",
+  "maxSessions": 50,
+  "description": "Fresh worker startup - no existing sessions"
+}
+
+### Expected Response (No Recovery Required):
+# {
+#   "success": true,
+#   "data": {
+#     "id": "worker-fresh-001",
+#     "endpoint": "http://192.168.1.100:8001",
+#     "status": "ONLINE",
+#     "sessionCount": 0,
+#     "maxSessions": 50,
+#     "description": "Fresh worker startup - no existing sessions",
+#     "recoveryRequired": false,
+#     "assignedSessionCount": 0,
+#     "lastHeartbeat": "2024-01-15T10:30:00.000Z",
+#     "createdAt": "2024-01-15T10:30:00.000Z",
+#     "updatedAt": "2024-01-15T10:30:00.000Z"
+#   },
+#   "message": "Worker registered successfully"
+# }
+
+### SCENARIO 2: Worker Restart After Crash (Recovery Required)
+### When a worker restarts and has existing sessions in database
+
+### Example 2: Worker Registration with Existing Sessions
+POST {{baseUrl}}/workers/register
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-restart-001",
+  "endpoint": "http://192.168.1.101:8001",
+  "maxSessions": 50,
+  "description": "Worker restarting after crash - has existing sessions"
+}
+
+### Expected Response (Recovery Required):
+# {
+#   "success": true,
+#   "data": {
+#     "id": "worker-restart-001",
+#     "endpoint": "http://192.168.1.101:8001",
+#     "status": "ONLINE",
+#     "sessionCount": 0,
+#     "maxSessions": 50,
+#     "description": "Worker restarting after crash - has existing sessions",
+#     "recoveryRequired": true,
+#     "assignedSessionCount": 3,
+#     "lastHeartbeat": "2024-01-15T10:30:00.000Z",
+#     "createdAt": "2024-01-15T10:30:00.000Z",
+#     "updatedAt": "2024-01-15T10:30:00.000Z"
+#   },
+#   "message": "Worker registered successfully"
+# }
+
+### SCENARIO 3: Get Assigned Sessions for Recovery
+### Worker calls this when recoveryRequired = true
+
+### Example 3: Fetch Sessions to Recover
+GET {{baseUrl}}/workers/worker-restart-001/sessions/assigned
+Authorization: Bearer {{workerToken}}
+
+### Expected Response (Multiple Sessions to Recover):
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "worker-restart-001",
+#     "assignedSessions": [
+#       {
+#         "sessionId": "user123-personal",
+#         "userId": "user123",
+#         "sessionName": "Personal WhatsApp",
+#         "status": "CONNECTED",
+#         "phoneNumber": "+6281234567890",
+#         "userEmail": "john@example.com",
+#         "lastSeenAt": "2024-01-15T10:30:00.000Z",
+#         "createdAt": "2024-01-15T09:00:00.000Z"
+#       },
+#       {
+#         "sessionId": "user456-business",
+#         "userId": "user456",
+#         "sessionName": "Business Account",
+#         "status": "QR_REQUIRED",
+#         "phoneNumber": null,
+#         "userEmail": "business@example.com",
+#         "lastSeenAt": null,
+#         "createdAt": "2024-01-15T10:00:00.000Z"
+#       },
+#       {
+#         "sessionId": "user789-support",
+#         "userId": "user789",
+#         "sessionName": "Customer Support",
+#         "status": "RECONNECTING",
+#         "phoneNumber": "+6287654321098",
+#         "userEmail": "support@company.com",
+#         "lastSeenAt": "2024-01-15T10:25:00.000Z",
+#         "createdAt": "2024-01-15T08:30:00.000Z"
+#       }
+#     ],
+#     "totalSessions": 3
+#   },
+#   "message": "Assigned sessions retrieved successfully"
+# }
+
+### SCENARIO 4: Report Recovery Results
+### Worker reports back the results of session recovery attempts
+
+### Example 4A: Mixed Recovery Results (Some Success, Some Failed)
+POST {{baseUrl}}/workers/worker-restart-001/sessions/recovery-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "recoveryResults": [
+    {
+      "sessionId": "user123-personal",
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "sessionId": "user456-business",
+      "status": "FAILED",
+      "error": "Session state file corrupted - auth_info_baileys missing"
+    },
+    {
+      "sessionId": "user789-support",
+      "status": "SKIPPED",
+      "error": "Session expired, requires re-authentication"
+    }
+  ],
+  "summary": {
+    "totalSessions": 3,
+    "successfulRecoveries": 1,
+    "failedRecoveries": 1,
+    "skippedRecoveries": 1
+  }
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "worker-restart-001",
+#     "processedSessions": 3,
+#     "successfulRecoveries": 1,
+#     "failedRecoveries": 1,
+#     "skippedRecoveries": 1,
+#     "updatedSessionCount": 1
+#   },
+#   "message": "Session recovery status processed successfully"
+# }
+
+### Example 4B: All Sessions Recovered Successfully
+POST {{baseUrl}}/workers/worker-restart-001/sessions/recovery-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "recoveryResults": [
+    {
+      "sessionId": "user123-personal",
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "sessionId": "user456-business",
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "sessionId": "user789-support",
+      "status": "SUCCESS",
+      "error": null
+    }
+  ],
+  "summary": {
+    "totalSessions": 3,
+    "successfulRecoveries": 3,
+    "failedRecoveries": 0,
+    "skippedRecoveries": 0
+  }
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "worker-restart-001",
+#     "processedSessions": 3,
+#     "successfulRecoveries": 3,
+#     "failedRecoveries": 0,
+#     "skippedRecoveries": 0,
+#     "updatedSessionCount": 3
+#   },
+#   "message": "Session recovery status processed successfully"
+# }
+
+### Example 4C: All Sessions Failed Recovery
+POST {{baseUrl}}/workers/worker-restart-001/sessions/recovery-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "recoveryResults": [
+    {
+      "sessionId": "user123-personal",
+      "status": "FAILED",
+      "error": "Baileys connection timeout"
+    },
+    {
+      "sessionId": "user456-business",
+      "status": "FAILED",
+      "error": "Invalid session state format"
+    },
+    {
+      "sessionId": "user789-support",
+      "status": "FAILED",
+      "error": "WhatsApp account banned"
+    }
+  ],
+  "summary": {
+    "totalSessions": 3,
+    "successfulRecoveries": 0,
+    "failedRecoveries": 3,
+    "skippedRecoveries": 0
+  }
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "worker-restart-001",
+#     "processedSessions": 3,
+#     "successfulRecoveries": 0,
+#     "failedRecoveries": 3,
+#     "skippedRecoveries": 0,
+#     "updatedSessionCount": 0
+#   },
+#   "message": "Session recovery status processed successfully"
+# }
+
+### SCENARIO 5: Complete Recovery Flow Example
+### This shows the complete flow from worker startup to recovery completion
+
+### Step 1: Worker starts and registers
+# POST /workers/register → Response: recoveryRequired: true, assignedSessionCount: 2
+
+### Step 2: Worker fetches assigned sessions
+# GET /workers/sessions/assigned → Response: List of 2 sessions to recover
+
+### Step 3: Worker attempts recovery for each session
+# - Load session state from local storage
+# - Initialize Baileys connection
+# - Restore WhatsApp session
+# - Update local session status
+
+### Step 4: Worker reports recovery results
+# POST /workers/:workerId/sessions/recovery-status → Response: Recovery processed
+
+### Step 5: Worker continues normal operation
+# - Send heartbeat updates with current session status
+# - Handle new session creation requests
+# - Process messages for recovered sessions
+
+### SCENARIO 6: Error Cases and Edge Scenarios
+
+### Example 6A: No Assigned Sessions Found
+GET {{baseUrl}}/workers/worker-no-sessions/sessions/assigned
+Authorization: Bearer {{workerToken}}
+
+### Expected Response (No Sessions):
+# {
+#   "success": false,
+#   "error": "No assigned sessions found for this worker"
+# }
+
+### Example 6B: Invalid Recovery Status
+POST {{baseUrl}}/workers/worker-001/sessions/recovery-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "recoveryResults": [
+    {
+      "sessionId": "user123-personal",
+      "status": "INVALID_STATUS",
+      "error": null
+    }
+  ],
+  "summary": {
+    "totalSessions": 1,
+    "successfulRecoveries": 0,
+    "failedRecoveries": 1,
+    "skippedRecoveries": 0
+  }
+}
+
+### Expected Response (Validation Error):
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "recoveryResults[0].status",
+#       "message": "Status must be one of: SUCCESS, FAILED, SKIPPED"
+#     }
+#   ]
+# }
+
+### Example 6C: Missing Required Fields
+POST {{baseUrl}}/workers/worker-001/sessions/recovery-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "recoveryResults": []
+}
+
+### Expected Response (Missing Summary):
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "summary",
+#       "message": "Summary object is required"
+#     }
+#   ]
+# }
+
+### SCENARIO 7: Real-World Recovery Patterns
+
+### Example 7A: Partial Recovery with Mixed Results
+### This represents a typical real-world scenario where some sessions recover and others don't
+
+POST {{baseUrl}}/workers/production-worker-01/sessions/recovery-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "recoveryResults": [
+    {
+      "sessionId": "ecommerce-store-main",
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "sessionId": "customer-support-bot",
+      "status": "SUCCESS", 
+      "error": null
+    },
+    {
+      "sessionId": "marketing-campaigns",
+      "status": "FAILED",
+      "error": "Session state corrupted after server crash"
+    },
+    {
+      "sessionId": "temp-testing-session",
+      "status": "SKIPPED",
+      "error": "Temporary session, not worth recovering"
+    },
+    {
+      "sessionId": "old-inactive-session",
+      "status": "FAILED",
+      "error": "Session inactive for 30+ days, WhatsApp disconnected"
+    }
+  ],
+  "summary": {
+    "totalSessions": 5,
+    "successfulRecoveries": 2,
+    "failedRecoveries": 2,
+    "skippedRecoveries": 1
+  }
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "production-worker-01",
+#     "processedSessions": 5,
+#     "successfulRecoveries": 2,
+#     "failedRecoveries": 2,
+#     "skippedRecoveries": 1,
+#     "updatedSessionCount": 2
+#   },
+#   "message": "Session recovery status processed successfully"
+# }
+### ========================================
+### SESSION RECOVERY ENDPOINTS
+### ========================================
+
+### Get assigned sessions for recovery (Worker endpoint)
+GET {{baseUrl}}/workers/worker-001/sessions/assigned
+Authorization: Bearer {{workerToken}}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "worker-001",
+#     "assignedSessions": [
+#       {
+#         "sessionId": "user123-personal",
+#         "userId": "user123",
+#         "sessionName": "Personal WhatsApp",
+#         "status": "CONNECTED",
+#         "phoneNumber": "+6281234567890",
+#         "userEmail": "user@example.com",
+#         "lastSeenAt": "2024-01-15T10:30:00.000Z",
+#         "createdAt": "2024-01-15T09:00:00.000Z"
+#       },
+#       {
+#         "sessionId": "user456-business",
+#         "userId": "user456",
+#         "sessionName": "Business Account",
+#         "status": "QR_REQUIRED",
+#         "phoneNumber": null,
+#         "userEmail": "business@example.com",
+#         "lastSeenAt": null,
+#         "createdAt": "2024-01-15T10:00:00.000Z"
+#       }
+#     ],
+#     "totalSessions": 2
+#   },
+#   "message": "Assigned sessions retrieved successfully"
+# }
+
+### Report session recovery status (Worker endpoint)
+POST {{baseUrl}}/workers/worker-001/sessions/recovery-status
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "recoveryResults": [
+    {
+      "sessionId": "user123-personal",
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "sessionId": "user456-business",
+      "status": "FAILED",
+      "error": "Session state file corrupted"
+    },
+    {
+      "sessionId": "user789-support",
+      "status": "SKIPPED",
+      "error": "Session expired, requires re-authentication"
+    }
+  ],
+  "summary": {
+    "totalSessions": 3,
+    "successfulRecoveries": 1,
+    "failedRecoveries": 1,
+    "skippedRecoveries": 1
+  }
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "worker-001",
+#     "processedSessions": 3,
+#     "successfulRecoveries": 1,
+#     "failedRecoveries": 1,
+#     "skippedRecoveries": 1,
+#     "updatedSessionCount": 1
+#   },
+#   "message": "Session recovery status processed successfully"
+# }
+
+### Test recovery scenario - Register worker with existing sessions
+POST {{baseUrl}}/workers/register
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "worker-with-sessions",
+  "endpoint": "http://192.168.1.110:8001",
+  "maxSessions": 50,
+  "description": "Worker restarting with existing sessions"
+}
+
+### Expected Response (Recovery Scenario):
+# {
+#   "success": true,
+#   "data": {
+#     "id": "worker-with-sessions",
+#     "endpoint": "http://192.168.1.110:8001",
+#     "status": "ONLINE",
+#     "sessionCount": 0,
+#     "maxSessions": 50,
+#     "description": "Worker restarting with existing sessions",
+#     "recoveryRequired": true,
+#     "assignedSessionCount": 2,
+#     "lastHeartbeat": "2024-01-15T10:30:00.000Z",
+#     "createdAt": "2024-01-15T10:30:00.000Z",
+#     "updatedAt": "2024-01-15T10:30:00.000Z"
+#   },
+#   "message": "Worker registered successfully"
+# }
+
+### Expected Response (Fresh Registration):
+# {
+#   "success": true,
+#   "data": {
+#     "id": "worker-fresh",
+#     "endpoint": "http://192.168.1.111:8001",
+#     "status": "ONLINE",
+#     "sessionCount": 0,
+#     "maxSessions": 50,
+#     "description": "Fresh worker with no existing sessions",
+#     "recoveryRequired": false,
+#     "assignedSessionCount": 0,
+#     "lastHeartbeat": "2024-01-15T10:30:00.000Z",
+#     "createdAt": "2024-01-15T10:30:00.000Z",
+#     "updatedAt": "2024-01-15T10:30:00.000Z"
+#   },
+#   "message": "Worker registered successfully"
+# }
+
+### ========================================
+### SESSION RECOVERY ERROR RESPONSES
+### ========================================
+
+### 404 Not Found (No assigned sessions):
+# {
+#   "success": false,
+#   "error": "No assigned sessions found for this worker"
+# }
+
+### 400 Bad Request (Invalid recovery status):
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "recoveryResults[0].status",
+#       "message": "Status must be one of: SUCCESS, FAILED, SKIPPED"
+#     }
+#   ]
+# }
+
+### 400 Bad Request (Missing required fields):
+# {
+#   "success": false,
+#   "error": "Validation failed",
+#   "details": [
+#     {
+#       "field": "recoveryResults",
+#       "message": "Recovery results array is required"
+#     },
+#     {
+#       "field": "summary",
+#       "message": "Summary object is required"
+#     }
+#   ]
 # }

@@ -45,7 +45,8 @@ export const validateWorkerRegistration = [
 ];
 
 /**
- * Validation for worker heartbeat update
+ * Validation for enhanced worker heartbeat update - Phase 2 Feature
+ * Supports both legacy and enhanced heartbeat formats for backward compatibility
  */
 export const validateWorkerHeartbeat = [
   param("workerId")
@@ -54,15 +55,85 @@ export const validateWorkerHeartbeat = [
     .isLength({ min: 3, max: 50 })
     .withMessage("Worker ID must be between 3 and 50 characters"),
 
+  // Phase 2: Enhanced session data validation
+  body("sessions")
+    .optional()
+    .isArray()
+    .withMessage("Sessions must be an array"),
+
+  body("sessions.*.sessionId")
+    .optional()
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Session ID must be between 1 and 100 characters"),
+
+  body("sessions.*.status")
+    .optional()
+    .isIn([
+      "CONNECTED",
+      "DISCONNECTED",
+      "QR_REQUIRED",
+      "RECONNECTING",
+      "INIT",
+      "ERROR",
+    ])
+    .withMessage(
+      "Session status must be one of: CONNECTED, DISCONNECTED, QR_REQUIRED, RECONNECTING, INIT, ERROR"
+    ),
+
+  body("sessions.*.phoneNumber")
+    .optional()
+    .matches(/^\+?[1-9]\d{1,14}$/)
+    .withMessage("Phone number must be a valid international format"),
+
+  body("sessions.*.lastActivity")
+    .optional()
+    .isISO8601()
+    .withMessage("Last activity must be a valid ISO 8601 timestamp"),
+
+  // Phase 2: Worker capabilities validation
+  body("capabilities")
+    .optional()
+    .isObject()
+    .withMessage("Capabilities must be an object"),
+
+  body("capabilities.maxSessions")
+    .optional()
+    .isInt({ min: 1, max: 1000 })
+    .withMessage("Max sessions capability must be between 1 and 1000"),
+
+  body("capabilities.version")
+    .optional()
+    .matches(/^\d+\.\d+\.\d+$/)
+    .withMessage("Version capability must be in format x.y.z (e.g., 1.0.0)"),
+
+  body("capabilities.environment")
+    .optional()
+    .isIn(["DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION"])
+    .withMessage(
+      "Environment capability must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION"
+    ),
+
+  body("capabilities.supportedFeatures")
+    .optional()
+    .isArray()
+    .withMessage("Supported features must be an array"),
+
+  body("capabilities.supportedFeatures.*")
+    .optional()
+    .isString()
+    .withMessage("Each supported feature must be a string"),
+
+  // Enhanced metrics validation (backward compatible)
   body("metrics")
     .optional()
     .isObject()
     .withMessage("Metrics must be an object"),
 
+  // Legacy session breakdown validation (backward compatibility)
   body("metrics.sessions")
     .optional()
     .isObject()
-    .withMessage("Sessions must be an object"),
+    .withMessage("Session metrics must be an object"),
 
   body("metrics.sessions.total")
     .optional()
@@ -99,6 +170,7 @@ export const validateWorkerHeartbeat = [
     .isInt({ min: 1 })
     .withMessage("Max sessions must be a positive integer"),
 
+  // Core metrics validation
   body("metrics.sessionCount")
     .optional()
     .isInt({ min: 0 })
@@ -123,6 +195,23 @@ export const validateWorkerHeartbeat = [
     .optional()
     .isInt({ min: 0 })
     .withMessage("Message count must be a non-negative integer"),
+
+  // Phase 2: Enhanced metrics validation
+  body("metrics.totalSessions")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Total sessions must be a non-negative integer"),
+
+  body("metrics.activeSessions")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Active sessions must be a non-negative integer"),
+
+  // Phase 2: Last activity timestamp validation
+  body("lastActivity")
+    .optional()
+    .isISO8601()
+    .withMessage("Last activity must be a valid ISO 8601 timestamp"),
 ];
 
 /**
@@ -248,4 +337,49 @@ export const validateWorkerFilters = [
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage("Limit must be between 1 and 100"),
+];
+
+/**
+ * Validation for worker session recovery status
+ */
+export const validateSessionRecoveryStatus = [
+  param("workerId")
+    .notEmpty()
+    .withMessage("Worker ID is required")
+    .isLength({ min: 3, max: 50 })
+    .withMessage("Worker ID must be between 3 and 50 characters"),
+
+  body("recoveryResults")
+    .isArray()
+    .withMessage("Recovery results must be an array"),
+
+  body("recoveryResults.*.sessionId")
+    .notEmpty()
+    .withMessage("Session ID is required for each recovery result"),
+
+  body("recoveryResults.*.status")
+    .isIn(["SUCCESS", "FAILED", "SKIPPED"])
+    .withMessage("Recovery status must be one of: SUCCESS, FAILED, SKIPPED"),
+
+  body("recoveryResults.*.error")
+    .optional()
+    .isString()
+    .withMessage("Error must be a string"),
+
+  body("recoveryResults.*.recoveredAt")
+    .optional()
+    .isISO8601()
+    .withMessage("Recovered at must be a valid ISO 8601 date"),
+
+  body("totalSessions")
+    .isInt({ min: 0 })
+    .withMessage("Total sessions must be a non-negative integer"),
+
+  body("successfulRecoveries")
+    .isInt({ min: 0 })
+    .withMessage("Successful recoveries must be a non-negative integer"),
+
+  body("failedRecoveries")
+    .isInt({ min: 0 })
+    .withMessage("Failed recoveries must be a non-negative integer"),
 ];
