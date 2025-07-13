@@ -52,14 +52,19 @@ src/
 ├── controllers/         # HTTP request handlers
 │   ├── auth.controller.js    # Authentication endpoints
 │   ├── user.controller.js    # User management
-│   └── worker.controller.js  # Worker management
+│   ├── worker.controller.js  # Worker management
+│   ├── session.controller.js # Session management
+│   └── webhook.controller.js # Webhook management
 ├── services/           # Business logic layer
 │   ├── auth.service.js       # Authentication service
 │   ├── user.service.js       # User service
 │   ├── worker.service.js     # Worker management service
+│   ├── session.service.js    # Session orchestration service
+│   ├── proxy.service.js      # Worker communication service
+│   ├── webhook.service.js    # Webhook service
 │   ├── message.js            # Message service (placeholder)
-│   ├── session.js            # Session service (placeholder)
-│   └── webhook.js            # Webhook service (placeholder)
+│   ├── session.js            # Session service (legacy placeholder)
+│   └── webhook.js            # Webhook service (legacy placeholder)
 ├── middleware/         # Express middleware
 │   ├── auth.js               # JWT authentication
 │   ├── error-handler.js      # Error handling
@@ -75,14 +80,17 @@ src/
 │   ├── auth.routes.js        # Authentication routes
 │   ├── user.routes.js        # User routes
 │   ├── worker.routes.js      # Worker routes
-│   ├── session.routes.js     # Session routes (placeholder)
+│   ├── session.routes.js     # Session routes
+│   ├── webhook.routes.js     # Webhook routes
 │   ├── admin.routes.js       # Admin routes (placeholder)
 │   ├── api.routes.js         # External API routes (placeholder)
 │   └── index.js              # Route aggregator
 ├── validation/         # Input validation
 │   ├── auth.validation.js    # Authentication validation
 │   ├── user.validation.js    # User validation
-│   └── worker.validation.js  # Worker validation
+│   ├── worker.validation.js  # Worker validation
+│   ├── session.validation.js # Session validation
+│   └── webhook.validation.js # Webhook validation
 ├── config/             # Configuration files
 │   └── security.js           # Security configuration
 ├── database/           # Database layer
@@ -116,6 +124,7 @@ src/
     ├── session.rest
     ├── test.rest
     ├── user.rest
+    ├── webhook.rest
     └── worker.rest
 ```
 
@@ -160,8 +169,8 @@ src/
 ### 7. Webhook Pattern
 
 - **Purpose:** Async communication between Workers and Backend
-- **Implementation:** Workers report status changes via webhook callbacks
-- **Benefits:** No timeout issues, better error handling, scalable
+- **Implementation:** Workers report status changes via webhook callbacks, external webhook notifications
+- **Benefits:** No timeout issues, better error handling, scalable, real-time event notifications
 
 ### 8. Data Normalization Pattern
 
@@ -176,22 +185,29 @@ src/
 - **Implementation:** Custom error classes (ConnectivityError, NotFoundError, ConflictError)
 - **Benefits:** Better user experience, easier debugging, proper HTTP status codes
 
+### 10. Enhanced Heartbeat Pattern
+
+- **Purpose:** Rich worker monitoring with detailed session status information
+- **Implementation:** Workers send comprehensive heartbeat data including individual session statuses, capabilities, and metrics
+- **Benefits:** Better load balancing decisions, improved session recovery, detailed monitoring
+
 ## 🗄️ Data Architecture
 
 ### Hybrid Data Ownership Matrix
 
-| Data Type            | Owner   | Storage            | Responsibility                     | Sync Method    |
-| -------------------- | ------- | ------------------ | ---------------------------------- | -------------- |
-| **User Accounts**    | Backend | PostgreSQL         | Authentication, billing, tiers     | N/A            |
-| **Session Metadata** | Backend | PostgreSQL         | Routing, status, worker assignment | Real-time      |
-| **API Keys**         | Backend | PostgreSQL         | Authentication, rate limiting      | N/A            |
-| **Worker Registry**  | Backend | PostgreSQL + Redis | Health, load balancing             | Heartbeat      |
-| **Usage Records**    | Backend | PostgreSQL         | Billing, analytics, compliance     | Batch sync     |
-| **System Logs**      | Backend | PostgreSQL         | Audit, troubleshooting             | Real-time      |
-| **Messages**         | Worker  | MinIO + Cache      | Chat history, delivery status      | Event-driven   |
-| **Session State**    | Worker  | MinIO + Local      | Baileys internal state             | Status updates |
-| **Media Files**      | Worker  | MinIO              | Images, documents, audio           | On-demand      |
-| **QR Codes**         | Worker  | Memory/Cache       | Temporary authentication           | Real-time      |
+| Data Type            | Owner   | Storage            | Responsibility                     | Sync Method        |
+| -------------------- | ------- | ------------------ | ---------------------------------- | ------------------ |
+| **User Accounts**    | Backend | PostgreSQL         | Authentication, billing, tiers     | N/A                |
+| **Session Metadata** | Backend | PostgreSQL         | Routing, status, worker assignment | Real-time          |
+| **API Keys**         | Backend | PostgreSQL         | Authentication, rate limiting      | N/A                |
+| **Worker Registry**  | Backend | PostgreSQL + Redis | Health, load balancing             | Enhanced Heartbeat |
+| **Usage Records**    | Backend | PostgreSQL         | Billing, analytics, compliance     | Batch sync         |
+| **System Logs**      | Backend | PostgreSQL         | Audit, troubleshooting             | Real-time          |
+| **Webhooks**         | Backend | PostgreSQL         | Event notifications, integrations  | Real-time          |
+| **Messages**         | Worker  | MinIO + Cache      | Chat history, delivery status      | Event-driven       |
+| **Session State**    | Worker  | MinIO + Local      | Baileys internal state             | Status updates     |
+| **Media Files**      | Worker  | MinIO              | Images, documents, audio           | On-demand          |
+| **QR Codes**         | Worker  | Memory/Cache       | Temporary authentication           | Real-time          |
 
 ### Backend Database Schema (PostgreSQL)
 
@@ -208,6 +224,7 @@ Workers (id, endpoint, status, sessionCount, maxSessions, cpuUsage, memoryUsage,
 SystemLogs (id, level, service, message, details, userId, sessionId, workerId, timestamp)
 Webhooks (id, sessionId, url, events, secret, isActive, lastDelivery, failureCount)
 WebhookDeliveries (id, webhookId, event, payload, status, responseCode, attempts, nextRetry)
+Messages (id, sessionId, direction, fromNumber, toNumber, messageType, content, status, timestamps)
 ```
 
 ### Worker MinIO Storage Structure
@@ -544,11 +561,32 @@ src/services/worker.js (background process)
 #### Worker Management System
 
 - **WorkerController:** ES6 modules, static methods, ApiResponse format, workerId normalization
-- **WorkerService:** Standalone function architecture, comprehensive error handling
+- **WorkerService:** Standalone function architecture, comprehensive error handling, enhanced heartbeat system
 - **Worker Routes:** Authentication middleware, rate limiting, validation integration
 - **Worker Validation:** Express-validator integration with proper separation of concerns
 - **Error Handling:** ConnectivityError class for user-friendly connectivity error messages
 - **Data Normalization:** Automatic workerId normalization to hyphen-only format
+- **Enhanced Heartbeat:** Rich session data with individual statuses, capabilities, and metrics (legacy code removed)
+- **Session Recovery:** Automatic session recovery after worker restarts with stale worker detection
+
+#### Session Management System
+
+- **SessionController:** Complete CRUD operations with two-phase session creation architecture
+- **SessionService:** Comprehensive business logic with worker assignment and load balancing
+- **ProxyService:** Worker communication service with retry logic and timeout handling
+- **Session Routes:** Authentication middleware, rate limiting, validation integration
+- **Session Validation:** Express-validator integration with comprehensive validation rules
+- **Redis Integration:** Session routing and high-performance lookups
+- **QR Code Management:** Real-time QR code generation, storage, and polling mechanism
+- **Message Sending:** API key authentication with rate limiting and worker routing
+
+#### Webhook System
+
+- **WebhookController:** Complete webhook management with CRUD operations
+- **WebhookService:** Event delivery system with retry logic and validation
+- **Webhook Routes:** Authentication middleware and rate limiting
+- **Webhook Validation:** Comprehensive validation for webhook operations
+- **Event Integration:** Integration with session and worker events
 
 #### Authentication & User Management
 
@@ -611,9 +649,16 @@ export class ConnectivityError extends Error {
 
 ### Next Implementation Phase
 
-#### Session Management System (📋 NEXT)
+#### Message History System (📋 NEXT)
 
-- **SessionController:** Two-phase session creation (card → connect)
-- **SessionService:** Worker assignment, QR code handling, status tracking
-- **ProxyService:** Worker communication for session operations
-- **Redis Integration:** Session routing and real-time status updates
+- **MessageController:** Message history retrieval and analytics
+- **MessageService:** Message storage, search, and analytics
+- **Message Routes:** API endpoints for message management
+- **Analytics Integration:** Usage tracking and reporting
+
+#### Session Migration System (📋 FUTURE)
+
+- **Migration Service:** Automatic session failover between workers
+- **Health Monitoring:** Enhanced worker failure detection
+- **Load Balancing:** Advanced resource-based worker selection
+- **Recovery Logic:** Seamless session state transfer

@@ -156,11 +156,11 @@ export const registerWorker = async (
 };
 
 /**
- * Update worker heartbeat and metrics - Phase 2 Enhanced Push Heartbeat
+ * Update worker heartbeat and metrics - Enhanced Push Heartbeat
  * @param {string} workerId - Worker identifier
  * @param {Object} heartbeatData - Enhanced heartbeat data
  * @param {string} heartbeatData.status - Worker status (ONLINE, OFFLINE, MAINTENANCE)
- * @param {Array} heartbeatData.sessions - Array of session objects with individual statuses
+ * @param {Array} heartbeatData.sessions - Array of session objects with individual statuses (REQUIRED)
  * @param {Object} heartbeatData.capabilities - Worker capabilities object
  * @param {Object} heartbeatData.metrics - Detailed metrics object
  * @param {string} heartbeatData.lastActivity - ISO timestamp of last activity
@@ -191,6 +191,13 @@ export const updateWorkerHeartbeat = async (workerId, heartbeatData = {}) => {
       );
     }
 
+    // Validate required enhanced heartbeat format
+    if (!Array.isArray(heartbeatData.sessions)) {
+      throw new Error(
+        "Enhanced heartbeat requires 'sessions' array. Legacy heartbeat format is no longer supported."
+      );
+    }
+
     // Initialize response counters
     let sessionsProcessed = 0;
     let sessionsSynced = 0;
@@ -203,77 +210,27 @@ export const updateWorkerHeartbeat = async (workerId, heartbeatData = {}) => {
       updatedAt: new Date(),
     };
 
-    // Handle enhanced session data or fallback to legacy metrics
-    let totalSessions = 0;
-    let sessionBreakdown = null;
+    // Process enhanced session data
+    const totalSessions = heartbeatData.sessions.length;
 
-    if (Array.isArray(heartbeatData.sessions)) {
-      // Phase 2: Enhanced session data with individual session statuses
-      totalSessions = heartbeatData.sessions.length;
+    // Process individual session statuses
+    const syncResult = await syncSessionStatuses(
+      workerId,
+      heartbeatData.sessions
+    );
+    sessionsProcessed = syncResult.processed;
+    sessionsSynced = syncResult.synced;
 
-      // Process individual session statuses
-      const syncResult = await syncSessionStatuses(
-        workerId,
-        heartbeatData.sessions
-      );
-      sessionsProcessed = syncResult.processed;
-      sessionsSynced = syncResult.synced;
+    // Calculate session breakdown from individual sessions
+    const sessionBreakdown = calculateSessionBreakdown(heartbeatData.sessions);
 
-      // Calculate session breakdown from individual sessions
-      sessionBreakdown = calculateSessionBreakdown(heartbeatData.sessions);
-
-      logger.info("Enhanced session data processed", {
-        workerId,
-        totalSessions,
-        sessionsProcessed,
-        sessionsSynced,
-        breakdown: sessionBreakdown,
-      });
-    } else if (
-      heartbeatData.metrics?.sessions &&
-      typeof heartbeatData.metrics.sessions === "object"
-    ) {
-      // Legacy enhanced session structure (from Phase 1)
-      sessionBreakdown = {
-        total: heartbeatData.metrics.sessions.total || 0,
-        connected: heartbeatData.metrics.sessions.connected || 0,
-        disconnected: heartbeatData.metrics.sessions.disconnected || 0,
-        qr_required: heartbeatData.metrics.sessions.qr_required || 0,
-        reconnecting: heartbeatData.metrics.sessions.reconnecting || 0,
-        error: heartbeatData.metrics.sessions.error || 0,
-        maxSessions: heartbeatData.metrics.sessions.maxSessions || 50,
-      };
-      totalSessions = sessionBreakdown.total;
-
-      // Validate session breakdown consistency
-      const calculatedTotal =
-        sessionBreakdown.connected +
-        sessionBreakdown.disconnected +
-        sessionBreakdown.qr_required +
-        sessionBreakdown.reconnecting +
-        sessionBreakdown.error;
-
-      if (calculatedTotal !== sessionBreakdown.total) {
-        logger.warn("Session breakdown inconsistency detected", {
-          workerId,
-          reported: sessionBreakdown.total,
-          calculated: calculatedTotal,
-          breakdown: sessionBreakdown,
-        });
-      }
-    } else if (heartbeatData.metrics?.sessionCount !== undefined) {
-      // Legacy sessionCount structure - maintain backward compatibility
-      totalSessions = heartbeatData.metrics.sessionCount;
-      sessionBreakdown = {
-        total: totalSessions,
-        connected: totalSessions, // Assume all are connected for legacy
-        disconnected: 0,
-        qr_required: 0,
-        reconnecting: 0,
-        error: 0,
-        maxSessions: 50,
-      };
-    }
+    logger.info("Enhanced session data processed", {
+      workerId,
+      totalSessions,
+      sessionsProcessed,
+      sessionsSynced,
+      breakdown: sessionBreakdown,
+    });
 
     // Update session count in database
     updateData.sessionCount = totalSessions;
@@ -333,12 +290,8 @@ export const updateWorkerHeartbeat = async (workerId, heartbeatData = {}) => {
       maxSessions: worker.maxSessions,
       lastHeartbeat: new Date().toISOString(),
       lastActivity: heartbeatData.lastActivity || new Date().toISOString(),
+      sessions: sessionBreakdown,
     };
-
-    // Add session breakdown to Redis if available
-    if (sessionBreakdown) {
-      redisWorkerData.sessions = sessionBreakdown;
-    }
 
     // Add capabilities to Redis if available
     if (heartbeatData.capabilities) {
@@ -347,7 +300,7 @@ export const updateWorkerHeartbeat = async (workerId, heartbeatData = {}) => {
 
     await redis.hset("workers", workerId, JSON.stringify(redisWorkerData));
 
-    // Detect stale workers (Phase 2 feature)
+    // Detect stale workers
     staleWorkersDetected = await detectStaleWorkers();
 
     logger.debug("Enhanced worker heartbeat updated successfully", {
@@ -357,7 +310,6 @@ export const updateWorkerHeartbeat = async (workerId, heartbeatData = {}) => {
       sessionsSynced,
       staleWorkersDetected,
       hasCapabilities: !!heartbeatData.capabilities,
-      sessionBreakdown: sessionBreakdown ? "enhanced" : "legacy",
     });
 
     return {
@@ -567,7 +519,7 @@ export const calculateWorkerScore = (worker, sessions) => {
 
 /**
  * Calculate basic worker score for workers without enhanced session data
- * Fallback scoring method for backward compatibility
+ * Fallback scoring method when Redis enhanced data is unavailable
  * @param {Object} worker - Worker database record
  * @returns {number} Worker score (lower is better)
  */
@@ -1014,13 +966,11 @@ export const checkWorkerHealth = async (worker) => {
     });
 
     if (response.status === 200 && response.data) {
-      // Worker is healthy, update metrics
-      const metrics = response.data.data || response.data;
-      await updateWorkerHeartbeat(worker.id, {
-        sessionCount: metrics.sessionCount || 0,
-        cpuUsage: metrics.cpuUsage || 0,
-        memoryUsage: metrics.memoryUsage || 0,
-        uptime: metrics.uptime || 0,
+      // Worker is healthy - enhanced heartbeat will be sent separately by worker
+      // Health check only verifies connectivity, not metrics update
+      logger.debug(`Worker ${worker.id} health check passed`, {
+        endpoint: worker.endpoint,
+        responseStatus: response.status,
       });
 
       return { workerId: worker.id, status: "healthy" };

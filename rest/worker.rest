@@ -3,7 +3,7 @@
 
 ### Variables
 @baseUrl = http://localhost:8000/api/v1
-@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYTU5YzcxOS02YzcxLTQzOWYtYjIyMi1hYzAzNjYwNDhiMGIiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUxODE0OTc5LCJleHAiOjE3NTI0MTk3NzksImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.vu0nECE3_gx42tW3a41B_CiGWMx2CNiAqqxwKe0gZVs
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYTU5YzcxOS02YzcxLTQzOWYtYjIyMi1hYzAzNjYwNDhiMGIiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUyNDE5OTU5LCJleHAiOjE3NTMwMjQ3NTksImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.hEDvICmHw20uEoYPSrr9x6H6XeQJucrgxdkgFn9tSnE
 @workerToken = worker-secret-token-change-in-production
 
 
@@ -216,91 +216,56 @@ Authorization: Bearer {{workerToken}}
 #   "message": "Worker heartbeat updated successfully with enhanced session data"
 # }
 
-### 2B. Legacy Worker Heartbeat (Backward Compatibility)
+### 2B. Enhanced Worker Heartbeat with Additional Metrics
 PUT {{baseUrl}}/workers/worker-002/heartbeat
-Content-Type: application/json
-Authorization: Bearer {{workerToken}}
-
-{
-  "status": "ONLINE",
-  "cpuUsage": 35.2,
-  "memoryUsage": 58.4,
-  "uptime": 7200,
-  "messageCount": 850,
-  "sessions": {
-    "total": 15,
-    "connected": 12,
-    "disconnected": 2,
-    "qr_required": 1,
-    "reconnecting": 0,
-    "error": 0
-  }
-}
-
-### Expected Legacy Response:
-# {
-#   "success": true,
-#   "data": {
-#     "workerId": "worker-002",
-#     "status": "ONLINE",
-#     "sessionCount": 15,
-#     "lastHeartbeat": "2024-01-15T10:30:00.000Z",
-#     "sessionsProcessed": 0,
-#     "sessionsSynced": 0,
-#     "staleWorkersDetected": 0,
-#     "sessionBreakdown": {
-#       "connected": 12,
-#       "disconnected": 2,
-#       "qr_required": 1,
-#       "reconnecting": 0,
-#       "error": 0,
-#       "init": 0
-#     },
-#     "metrics": {
-#       "cpuUsage": 35.2,
-#       "memoryUsage": 58.4,
-#       "uptime": 7200,
-#       "messageCount": 850
-#     }
-#   },
-#   "message": "Worker heartbeat updated successfully"
-# }
-
-### 2C. Mixed Format Heartbeat (Testing Compatibility)
-PUT {{baseUrl}}/workers/worker-003/heartbeat
 Content-Type: application/json
 Authorization: Bearer {{workerToken}}
 
 {
   "sessions": [
     {
-      "sessionId": "mixed-session-001",
+      "sessionId": "production-session-001",
       "status": "CONNECTED",
       "phoneNumber": "+6281111111111",
       "lastActivity": "2024-01-15T10:30:00.000Z"
+    },
+    {
+      "sessionId": "production-session-002",
+      "status": "QR_REQUIRED",
+      "phoneNumber": null,
+      "lastActivity": "2024-01-15T10:25:00.000Z"
     }
   ],
-  "cpuUsage": 25.8,
-  "memoryUsage": 42.1,
-  "uptime": 3600,
-  "messageCount": 500
+  "capabilities": {
+    "maxSessions": 30,
+    "version": "1.1.0",
+    "environment": "PRODUCTION"
+  },
+  "metrics": {
+    "cpuUsage": 25.8,
+    "memoryUsage": 42.1,
+    "uptime": 3600,
+    "messageCount": 500,
+    "totalSessions": 2,
+    "activeSessions": 1
+  }
 }
 
-### Expected Mixed Response:
+### Expected Enhanced Response:
 # {
 #   "success": true,
 #   "data": {
-#     "workerId": "worker-003",
+#     "workerId": "worker-002",
 #     "status": "ONLINE",
-#     "sessionCount": 1,
+#     "sessionCount": 2,
 #     "lastHeartbeat": "2024-01-15T10:30:00.000Z",
-#     "sessionsProcessed": 1,
-#     "sessionsSynced": 1,
+#     "sessionsProcessed": 2,
+#     "sessionsSynced": 2,
 #     "staleWorkersDetected": 0,
 #     "sessionBreakdown": {
 #       "connected": 1,
+#       "qr_required": 1,
 #       "disconnected": 0,
-#       "qr_required": 0,
 #       "reconnecting": 0,
 #       "error": 0,
 #       "init": 0
@@ -309,7 +274,9 @@ Authorization: Bearer {{workerToken}}
 #       "cpuUsage": 25.8,
 #       "memoryUsage": 42.1,
 #       "uptime": 3600,
-#       "messageCount": 500
+#       "messageCount": 500,
+#       "totalSessions": 2,
+#       "activeSessions": 1
 #     }
 #   },
 #   "message": "Worker heartbeat updated successfully with enhanced session data"

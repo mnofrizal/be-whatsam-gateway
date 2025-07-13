@@ -340,10 +340,8 @@ export class SessionService {
           apiKey: {
             select: {
               key: true,
-              name: true,
               isActive: true,
               lastUsed: true,
-              createdAt: true,
             },
           },
         },

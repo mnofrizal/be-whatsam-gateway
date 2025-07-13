@@ -45,8 +45,8 @@ export const validateWorkerRegistration = [
 ];
 
 /**
- * Validation for enhanced worker heartbeat update - Phase 2 Feature
- * Supports both legacy and enhanced heartbeat formats for backward compatibility
+ * Validation for enhanced worker heartbeat update
+ * Enhanced heartbeat format only - legacy formats no longer supported
  */
 export const validateWorkerHeartbeat = [
   param("workerId")
@@ -55,19 +55,18 @@ export const validateWorkerHeartbeat = [
     .isLength({ min: 3, max: 50 })
     .withMessage("Worker ID must be between 3 and 50 characters"),
 
-  // Phase 2: Enhanced session data validation
+  // Enhanced session data validation (REQUIRED)
   body("sessions")
-    .optional()
     .isArray()
-    .withMessage("Sessions must be an array"),
+    .withMessage("Sessions array is required for enhanced heartbeat"),
 
   body("sessions.*.sessionId")
-    .optional()
+    .notEmpty()
+    .withMessage("Session ID is required for each session")
     .isLength({ min: 1, max: 100 })
     .withMessage("Session ID must be between 1 and 100 characters"),
 
   body("sessions.*.status")
-    .optional()
     .isIn([
       "CONNECTED",
       "DISCONNECTED",
@@ -90,7 +89,7 @@ export const validateWorkerHeartbeat = [
     .isISO8601()
     .withMessage("Last activity must be a valid ISO 8601 timestamp"),
 
-  // Phase 2: Worker capabilities validation
+  // Worker capabilities validation
   body("capabilities")
     .optional()
     .isObject()
@@ -123,58 +122,11 @@ export const validateWorkerHeartbeat = [
     .isString()
     .withMessage("Each supported feature must be a string"),
 
-  // Enhanced metrics validation (backward compatible)
+  // Enhanced metrics validation
   body("metrics")
     .optional()
     .isObject()
     .withMessage("Metrics must be an object"),
-
-  // Legacy session breakdown validation (backward compatibility)
-  body("metrics.sessions")
-    .optional()
-    .isObject()
-    .withMessage("Session metrics must be an object"),
-
-  body("metrics.sessions.total")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Total sessions must be a non-negative integer"),
-
-  body("metrics.sessions.connected")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Connected sessions must be a non-negative integer"),
-
-  body("metrics.sessions.disconnected")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Disconnected sessions must be a non-negative integer"),
-
-  body("metrics.sessions.qr_required")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("QR required sessions must be a non-negative integer"),
-
-  body("metrics.sessions.reconnecting")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Reconnecting sessions must be a non-negative integer"),
-
-  body("metrics.sessions.error")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Error sessions must be a non-negative integer"),
-
-  body("metrics.sessions.maxSessions")
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage("Max sessions must be a positive integer"),
-
-  // Core metrics validation
-  body("metrics.sessionCount")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Session count must be a non-negative integer"),
 
   body("metrics.cpuUsage")
     .optional()
@@ -196,7 +148,6 @@ export const validateWorkerHeartbeat = [
     .isInt({ min: 0 })
     .withMessage("Message count must be a non-negative integer"),
 
-  // Phase 2: Enhanced metrics validation
   body("metrics.totalSessions")
     .optional()
     .isInt({ min: 0 })
@@ -207,7 +158,7 @@ export const validateWorkerHeartbeat = [
     .isInt({ min: 0 })
     .withMessage("Active sessions must be a non-negative integer"),
 
-  // Phase 2: Last activity timestamp validation
+  // Last activity timestamp validation
   body("lastActivity")
     .optional()
     .isISO8601()

@@ -206,6 +206,13 @@ export const getSessionById = asyncHandler(async (req, res) => {
           messagesReceived: session.messagesReceived || 0,
           uptime: session.uptime || "0m",
         },
+        apiKey: session.apiKey
+          ? {
+              key: session.apiKey.key,
+              isActive: session.apiKey.isActive,
+              lastUsed: session.apiKey.lastUsed,
+            }
+          : null,
       },
     })
   );
