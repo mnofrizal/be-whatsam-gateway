@@ -3,6 +3,8 @@ import { ApiResponse, ValidationHelper } from "../utils/helpers.js";
 import { HTTP_STATUS, ERROR_CODES } from "../utils/constants.js";
 import { asyncHandler } from "../middleware/error-handler.js";
 import sessionService from "../services/session.service.js";
+import ProxyService from "../services/proxy.service.js";
+import WorkerService from "../services/worker.service.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -333,12 +335,60 @@ export const sendMessage = asyncHandler(async (req, res) => {
     filename: filename?.trim(),
   };
 
-  // Route message request to worker
-  const result = await sessionService.routeRequest(
+  // Get session and verify ownership
+  const session = await sessionService.getSessionById(sessionId, userId);
+  if (!session) {
+    return res
+      .status(HTTP_STATUS.NOT_FOUND)
+      .json(
+        ApiResponse.createErrorResponse(
+          "Session not found or access denied",
+          ERROR_CODES.RESOURCE_NOT_FOUND
+        )
+      );
+  }
+
+  // Check if session is connected
+  if (session.status !== "CONNECTED") {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json(
+        ApiResponse.createErrorResponse(
+          `Cannot send message. Session status is ${session.status}. Please ensure session is connected.`,
+          ERROR_CODES.INVALID_REQUEST
+        )
+      );
+  }
+
+  // Get worker details
+  if (!session.workerId) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json(
+        ApiResponse.createErrorResponse(
+          "Session is not assigned to any worker",
+          ERROR_CODES.INVALID_REQUEST
+        )
+      );
+  }
+
+  const worker = await WorkerService.getWorkerById(session.workerId);
+  if (!worker || worker.status !== "ONLINE") {
+    return res
+      .status(HTTP_STATUS.SERVICE_UNAVAILABLE)
+      .json(
+        ApiResponse.createErrorResponse(
+          "Worker is not available. Please try again later.",
+          ERROR_CODES.SERVICE_UNAVAILABLE
+        )
+      );
+  }
+
+  // Send message using dedicated ProxyService method
+  const result = await ProxyService.sendMessage(
+    worker.endpoint,
     sessionId,
-    "/message/send",
-    messageData,
-    "POST"
+    messageData
   );
 
   logger.info("Message sent successfully", {
@@ -347,6 +397,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
     messageId: result.messageId,
     to: to.trim(),
     type: type.toLowerCase(),
+    workerId: worker.id,
     ip: req.ip,
     userAgent: req.get("User-Agent"),
   });

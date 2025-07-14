@@ -75,9 +75,9 @@ export const validateSendMessage = [
   body("to")
     .notEmpty()
     .withMessage("Recipient is required")
-    .matches(/^[0-9]+@[a-z.]+$/)
+    .matches(/^([0-9]+(@[a-z.]+)?|[0-9]+@[a-z.]+)$/)
     .withMessage(
-      "Recipient must be in format: number@s.whatsapp.net or number@g.us"
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)"
     ),
 
   body("type")

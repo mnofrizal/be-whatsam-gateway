@@ -1,0 +1,44 @@
+### Test API Key Format Fix
+### This file tests that the API key format mismatch has been resolved
+
+### 1. Login to get JWT token
+POST http://localhost:8000/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+### 2. Create a new session (this will generate a properly formatted API key)
+POST http://localhost:8000/api/v1/sessions
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "name": "Test Session for API Key Fix",
+  "sessionId": "test-api-fix-session"
+}
+
+### 3. Test the operational API with the new API key
+POST http://localhost:8000/api/v1/sendText
+Authorization: Bearer {{newApiKey}}
+Content-Type: application/json
+
+{
+  "to": "6281234567890",
+  "message": "Testing API key fix - this should work now!"
+}
+
+### 4. Test another endpoint to confirm
+POST http://localhost:8000/api/v1/sendSeen
+Authorization: Bearer {{newApiKey}}
+Content-Type: application/json
+
+{
+  "to": "6281234567890"
+}
+
+### Variables to update after each request:
+# @jwtToken = (copy from login response)
+# @newApiKey = (copy from session creation response)

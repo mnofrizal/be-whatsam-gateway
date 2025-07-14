@@ -992,6 +992,84 @@ export class SessionService {
   }
 
   /**
+   * Send message through session
+   * @param {string} sessionId - Session ID
+   * @param {Object} messageData - Message data object containing to, type, message, etc.
+   * @returns {Object} Send result
+   */
+  async sendMessage(sessionId, messageData) {
+    try {
+      logger.info("Sending message through session", {
+        sessionId,
+        to: messageData.to,
+        type: messageData.type,
+        service: "SessionService",
+      });
+
+      // Get session and verify it's connected
+      const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        include: {
+          worker: {
+            select: {
+              id: true,
+              endpoint: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      if (!session) {
+        throw new NotFoundError("Session not found");
+      }
+
+      if (session.status !== "CONNECTED") {
+        throw new ConflictError(
+          `Session is not connected. Current status: ${session.status}`
+        );
+      }
+
+      if (!session.workerId || !session.worker) {
+        throw new ConnectivityError("No worker assigned to session");
+      }
+
+      if (session.worker.status !== "ONLINE") {
+        throw new ConnectivityError("Worker is not online");
+      }
+
+      // Send message through worker
+      const response = await ProxyService.sendMessage(
+        session.worker.endpoint,
+        sessionId,
+        messageData
+      );
+
+      logger.info("Message sent successfully", {
+        sessionId,
+        to: messageData.to,
+        type: messageData.type,
+        workerId: session.workerId,
+        service: "SessionService",
+      });
+
+      // Extract only the data part from worker response to avoid double-wrapping
+      // Worker returns: { success: true, timestamp: "...", data: { messageId, status, to } }
+      // We only want the data part: { messageId, status, to }
+      return response.data || response;
+    } catch (error) {
+      logger.error("Failed to send message", {
+        sessionId,
+        to: messageData.to,
+        type: messageData.type,
+        error: error.message,
+        service: "SessionService",
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Generate session API key
    * @param {string} userId - User ID
    * @param {string} sessionId - Session ID
@@ -1000,8 +1078,9 @@ export class SessionService {
    */
   async generateSessionApiKey(userId, sessionId, name) {
     try {
-      const crypto = await import("crypto");
-      const apiKey = `sk_${crypto.randomBytes(32).toString("hex")}`;
+      // Import UtilHelper to use the correct API key generation method
+      const { UtilHelper } = await import("../utils/helpers.js");
+      const apiKey = UtilHelper.generateApiKey(); // This generates wg_ format
 
       await prisma.apiKey.create({
         data: {
@@ -1016,6 +1095,7 @@ export class SessionService {
       logger.info("Session API key generated", {
         userId,
         sessionId,
+        apiKeyFormat: apiKey.substring(0, 3) + "***", // Log format without exposing key
         service: "SessionService",
       });
 

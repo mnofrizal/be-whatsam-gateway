@@ -112,8 +112,8 @@ export const REGEX = {
   // API Key format (wg_ prefix + 32 chars)
   API_KEY: /^wg_[a-zA-Z0-9]{32,}$/,
 
-  // Session ID format (alphanumeric, dash, underscore)
-  SESSION_ID: /^[a-zA-Z0-9_-]{3,50}$/,
+  // Session ID format (alphanumeric, dash, underscore, supports UUID-based IDs)
+  SESSION_ID: /^[a-zA-Z0-9_-]{3,100}$/,
 
   // Worker ID format
   WORKER_ID: /^worker-[a-zA-Z0-9_-]{3,30}$/,
@@ -145,7 +145,7 @@ export const VALIDATION = {
     NAME_MIN_LENGTH: 3,
     NAME_MAX_LENGTH: 50,
     ID_MIN_LENGTH: 3,
-    ID_MAX_LENGTH: 50,
+    ID_MAX_LENGTH: 100,
     DESCRIPTION_MAX_LENGTH: 255,
   },
 

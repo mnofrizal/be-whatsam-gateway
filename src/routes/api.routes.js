@@ -1,4 +1,4 @@
-// External API Routes - MVP Pattern with Bearer Token Authentication
+// External API Routes - Operational Message APIs for External Integration
 // These routes are for external API consumers using Bearer token authentication
 import express from "express";
 import { ApiResponse } from "../utils/helpers.js";
@@ -6,8 +6,120 @@ import { HTTP_STATUS, ERROR_CODES } from "../utils/constants.js";
 import { asyncHandler } from "../middleware/error-handler.js";
 import { apiLimiter, createMessageLimiter } from "../middleware/rate-limit.js";
 import { authenticateApiKey } from "../middleware/auth.js";
+import { ValidationHelper } from "../utils/helpers.js";
+import ApiController from "../controllers/api.controller.js";
+import {
+  validateSendText,
+  validateSendImage,
+  validateSendFile,
+  validateSendVoice,
+  validateSendVideo,
+  validateSendLocation,
+  validateSendSeen,
+  validateSessionParam,
+} from "../validation/api.validation.js";
 
 const router = express.Router();
+
+// ========================================
+// OPERATIONAL MESSAGE APIs - For External Integration
+// ========================================
+
+// POST /api/v1/sendText - Send text message
+router.post(
+  "/sendText",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendText,
+  ValidationHelper.handleValidationErrors,
+  ApiController.sendText
+);
+
+// POST /api/v1/sendImage - Send image message
+router.post(
+  "/sendImage",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendImage,
+  ValidationHelper.handleValidationErrors,
+  ApiController.sendImage
+);
+
+// POST /api/v1/sendFile - Send document/file message
+router.post(
+  "/sendFile",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendFile,
+  ValidationHelper.handleValidationErrors,
+  ApiController.sendFile
+);
+
+// POST /api/v1/sendVoice - Send voice/audio message
+router.post(
+  "/sendVoice",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendVoice,
+  ValidationHelper.handleValidationErrors,
+  ApiController.sendVoice
+);
+
+// POST /api/v1/sendVideo - Send video message
+router.post(
+  "/sendVideo",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendVideo,
+  ValidationHelper.handleValidationErrors,
+  ApiController.sendVideo
+);
+
+// POST /api/v1/sendLocation - Send location message
+router.post(
+  "/sendLocation",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendLocation,
+  ValidationHelper.handleValidationErrors,
+  ApiController.sendLocation
+);
+
+// POST /api/v1/sendSeen - Mark message as seen/read
+router.post(
+  "/sendSeen",
+  authenticateApiKey,
+  apiLimiter,
+  validateSendSeen,
+  ValidationHelper.handleValidationErrors,
+  ApiController.sendSeen
+);
+
+// GET /api/v1/session/status - Get session status (sessionId from API key)
+router.get(
+  "/session/status",
+  authenticateApiKey,
+  apiLimiter,
+  ApiController.getSessionStatus
+);
+
+// GET /api/v1/session/qr - Get session QR code (sessionId from API key)
+router.get(
+  "/session/qr",
+  authenticateApiKey,
+  apiLimiter,
+  ApiController.getSessionQR
+);
+
+// ========================================
+// LEGACY/ADVANCED APIs - For Complex Operations
+// ========================================
 
 // POST /api/v1/send - Send Message (External API)
 router.post(
