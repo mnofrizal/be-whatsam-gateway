@@ -3,6 +3,7 @@
 
 @baseUrl = http://localhost:8000/api/v1
 @workerToken = worker-secret-token-change-in-production
+@workerId = worker-001
 
 ### ===========================================
 ### SESSION STATUS WEBHOOKS
@@ -17,6 +18,7 @@ Content-Type: application/json
   "sessionId": "user123-personal",
   "status": "qr_required",
   "qrCode": "1@ABC123XYZ789DEF456GHI",
+  "workerId": "{{workerId}}",
   "timestamp": "2025-01-07T15:30:00.000Z"
 }
 
@@ -29,6 +31,8 @@ Content-Type: application/json
   "sessionId": "user123-personal",
   "status": "connected",
   "phoneNumber": "+6281234567890",
+  "displayName": "John Doe",
+  "workerId": "{{workerId}}",
   "timestamp": "2025-01-07T15:32:00.000Z"
 }
 
@@ -40,6 +44,8 @@ Content-Type: application/json
 {
   "sessionId": "user123-personal",
   "status": "disconnected",
+  "displayName": "John Doe",
+  "workerId": "{{workerId}}",
   "timestamp": "2025-01-07T15:35:00.000Z"
 }
 
@@ -51,6 +57,8 @@ Content-Type: application/json
 {
   "sessionId": "user123-personal",
   "status": "reconnecting",
+  "displayName": "John Doe",
+  "workerId": "{{workerId}}",
   "timestamp": "2025-01-07T15:36:00.000Z"
 }
 
@@ -63,6 +71,8 @@ Content-Type: application/json
   "sessionId": "user123-personal",
   "status": "error",
   "errorMessage": "WhatsApp connection failed",
+  "displayName": "John Doe",
+  "workerId": "{{workerId}}",
   "timestamp": "2025-01-07T15:37:00.000Z"
 }
 
@@ -246,6 +256,7 @@ Content-Type: application/json
   "sessionId": "user456-business",
   "status": "qr_required",
   "qrCode": "1@XYZ789ABC123DEF456GHI",
+  "workerId": "worker-002",
   "timestamp": "2025-01-07T15:55:00.000Z"
 }
 
@@ -276,6 +287,7 @@ Content-Type: application/json
   "sessionId": "integration-test-001",
   "status": "qr_required",
   "qrCode": "1@INTEGRATION123TEST456",
+  "workerId": "worker-integration",
   "timestamp": "2025-01-07T16:00:00.000Z"
 }
 
@@ -288,6 +300,8 @@ Content-Type: application/json
   "sessionId": "integration-test-001",
   "status": "connected",
   "phoneNumber": "+6281234567890",
+  "displayName": "Integration Test User",
+  "workerId": "worker-integration",
   "timestamp": "2025-01-07T16:01:00.000Z"
 }
 
@@ -531,6 +545,8 @@ Content-Type: application/json
   "sessionId": "user123-personal",
   "status": "connected",
   "phoneNumber": "+6281234567890",
+  "displayName": "Alice Johnson",
+  "workerId": "{{workerId}}",
   "timestamp": "2025-01-07T15:30:00.000Z"
 }
 

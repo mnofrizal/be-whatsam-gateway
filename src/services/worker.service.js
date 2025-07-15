@@ -1482,7 +1482,8 @@ export const syncSessionStatuses = async (workerId, sessions) => {
       try {
         processed++;
 
-        const { sessionId, status, phoneNumber, lastActivity } = sessionData;
+        const { sessionId, status, phoneNumber, displayName, lastActivity } =
+          sessionData;
 
         // Validate session belongs to this worker
         const existingSession = await prisma.session.findFirst({
@@ -1515,6 +1516,11 @@ export const syncSessionStatuses = async (workerId, sessions) => {
         // Update phone number if provided
         if (phoneNumber && phoneNumber !== existingSession.phoneNumber) {
           updateData.phoneNumber = phoneNumber;
+        }
+
+        // Update display name if provided
+        if (displayName && displayName !== existingSession.displayName) {
+          updateData.displayName = displayName;
         }
 
         // Update last activity if provided

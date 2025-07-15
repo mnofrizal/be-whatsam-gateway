@@ -89,6 +89,7 @@ export class SessionService {
           id: sessionId,
           userId,
           name,
+          displayName: null, // Will be updated when WhatsApp connection is established
           status: "DISCONNECTED",
         },
       });
@@ -367,6 +368,7 @@ export class SessionService {
             await this.updateSessionStatus(sessionId, {
               status: workerStatus.status.toUpperCase(),
               phoneNumber: workerStatus.phoneNumber,
+              displayName: workerStatus.displayName,
               lastSeenAt: new Date(),
             });
 
@@ -517,6 +519,7 @@ export class SessionService {
             await this.updateSessionStatus(sessionId, {
               status: workerStatus.status.toUpperCase(),
               phoneNumber: workerStatus.phoneNumber,
+              displayName: workerStatus.displayName,
               lastSeenAt: new Date(),
             });
           }

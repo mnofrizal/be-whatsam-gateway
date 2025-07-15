@@ -67,6 +67,7 @@ export const createSession = asyncHandler(async (req, res) => {
       {
         sessionId: result.id,
         name: result.name,
+        displayName: result.displayName,
         status: result.status,
         workerId: result.workerId,
         apiKey: result.apiKey,
@@ -144,6 +145,7 @@ export const getSessions = asyncHandler(async (req, res) => {
       sessions: result.sessions.map((session) => ({
         id: session.id,
         name: session.name,
+        displayName: session.displayName,
         phoneNumber: session.phoneNumber,
         status: session.status,
         workerId: session.workerId,
@@ -197,6 +199,7 @@ export const getSessionById = asyncHandler(async (req, res) => {
       session: {
         id: session.id,
         name: session.name,
+        displayName: session.displayName,
         phoneNumber: session.phoneNumber,
         status: session.status,
         workerId: session.workerId,

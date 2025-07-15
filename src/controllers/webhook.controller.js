@@ -19,13 +19,23 @@ import logger from "../utils/logger.js";
  * Endpoint: POST /api/v1/webhooks/session-status
  */
 const handleSessionStatus = asyncHandler(async (req, res) => {
-  const { sessionId, status, qrCode, phoneNumber, timestamp } = req.body;
+  const {
+    sessionId,
+    status,
+    qrCode,
+    phoneNumber,
+    displayName,
+    workerId,
+    timestamp,
+  } = req.body;
 
   logger.info("Received session status webhook", {
     sessionId,
     status,
     hasQrCode: !!qrCode,
     phoneNumber,
+    displayName,
+    workerId,
     timestamp,
   });
 
@@ -35,6 +45,8 @@ const handleSessionStatus = asyncHandler(async (req, res) => {
       status,
       qrCode,
       phoneNumber,
+      displayName,
+      workerId,
       timestamp,
     });
 
@@ -42,6 +54,7 @@ const handleSessionStatus = asyncHandler(async (req, res) => {
       sessionId,
       status: updatedSession.status,
       phoneNumber: updatedSession.phoneNumber,
+      displayName: updatedSession.displayName,
     });
 
     return res.status(HTTP_STATUS.OK).json(
@@ -49,6 +62,7 @@ const handleSessionStatus = asyncHandler(async (req, res) => {
         sessionId: updatedSession.id,
         status: updatedSession.status,
         phoneNumber: updatedSession.phoneNumber,
+        displayName: updatedSession.displayName,
         updatedAt: updatedSession.updatedAt,
       })
     );

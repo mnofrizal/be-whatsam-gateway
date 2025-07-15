@@ -33,7 +33,8 @@ model Session {
     id          String        @id
     userId      String        @map("user_id")
     workerId    String?       @map("worker_id")
-    name        String
+    name        String // User-defined session name (e.g., "Personal WhatsApp", "Business Account")
+    displayName String?       @map("display_name") // WhatsApp account display name (e.g., "John Doe", "ABC Company")
     phoneNumber String?       @map("phone_number")
     status      SessionStatus @default(DISCONNECTED)
     qrCode      String?       @map("qr_code")

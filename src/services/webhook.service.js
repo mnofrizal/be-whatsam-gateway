@@ -9,7 +9,8 @@ import logger from "../utils/logger.js";
  */
 export const updateSessionStatus = async (sessionId, statusData) => {
   try {
-    const { status, qrCode, phoneNumber, timestamp } = statusData;
+    const { status, qrCode, phoneNumber, displayName, workerId, timestamp } =
+      statusData;
 
     // Prepare update data
     const updateData = {
@@ -27,6 +28,16 @@ export const updateSessionStatus = async (sessionId, statusData) => {
       updateData.phoneNumber = phoneNumber;
     }
 
+    // Add display name if provided (WhatsApp account name)
+    if (displayName) {
+      updateData.displayName = displayName;
+    }
+
+    // Add worker ID if provided (for worker assignment tracking)
+    if (workerId) {
+      updateData.workerId = workerId;
+    }
+
     // Update session in database
     const updatedSession = await prisma.session.update({
       where: { id: sessionId },
@@ -37,6 +48,8 @@ export const updateSessionStatus = async (sessionId, statusData) => {
       sessionId,
       status: updatedSession.status,
       phoneNumber: updatedSession.phoneNumber,
+      displayName: updatedSession.displayName,
+      workerId: updatedSession.workerId,
     });
 
     return updatedSession;

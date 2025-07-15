@@ -37,21 +37,40 @@ export const validateSessionStatus = [
     ),
 
   body("qrCode")
-    .optional()
+    .optional({ nullable: true })
     .isString()
     .withMessage("QR code must be a string")
     .isLength({ min: 1, max: 2000 })
     .withMessage("QR code must be between 1 and 2000 characters"),
 
   body("phoneNumber")
-    .optional()
+    .optional({ nullable: true })
     .isString()
     .withMessage("Phone number must be a string")
     .matches(/^\+?[1-9]\d{1,14}$/)
     .withMessage("Phone number must be a valid international format"),
 
+  body("displayName")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("Display name must be a string")
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Display name must be between 1 and 100 characters")
+    .trim(),
+
+  body("workerId")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("Worker ID must be a string")
+    .isLength({ min: 1, max: 50 })
+    .withMessage("Worker ID must be between 1 and 50 characters")
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage(
+      "Worker ID can only contain letters, numbers, hyphens, and underscores"
+    ),
+
   body("timestamp")
-    .optional()
+    .optional({ nullable: true })
     .isISO8601()
     .withMessage("Timestamp must be a valid ISO 8601 date"),
 

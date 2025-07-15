@@ -12,6 +12,12 @@ export const validateSessionCreation = [
     .withMessage("Session name must be between 1 and 100 characters")
     .trim(),
 
+  body("displayName")
+    .optional()
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Display name must be between 1 and 100 characters")
+    .trim(),
+
   body("sessionId")
     .optional()
     .isLength({ min: 3, max: 100 })
