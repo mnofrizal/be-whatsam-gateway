@@ -7,9 +7,9 @@ import {
 import { authenticateWorker } from "../middleware/auth.js";
 import { sessionLimiter } from "../middleware/rate-limit.js";
 import {
-  validateSessionStatus,
-  validateMessageStatus,
-  validateWorkerHeartbeat,
+  validateSessionStatusMiddleware,
+  validateMessageStatusMiddleware,
+  validateWorkerHeartbeatMiddleware,
   validateWebhookCommon,
   validateWebhookPayloadSize,
   validateSessionIdFormat,
@@ -40,7 +40,7 @@ router.post(
   authenticateWorker,
   sessionLimiter,
   validateSessionIdFormat,
-  validateSessionStatus,
+  validateSessionStatusMiddleware,
   handleSessionStatus
 );
 
@@ -56,7 +56,7 @@ router.post(
   authenticateWorker,
   sessionLimiter,
   validateSessionIdFormat,
-  validateMessageStatus,
+  validateMessageStatusMiddleware,
   handleMessageStatus
 );
 
@@ -72,7 +72,7 @@ router.post(
   authenticateWorker,
   sessionLimiter,
   validateWorkerIdFormat,
-  validateWorkerHeartbeat,
+  validateWorkerHeartbeatMiddleware,
   handleWorkerHeartbeat
 );
 

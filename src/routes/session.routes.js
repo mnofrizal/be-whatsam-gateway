@@ -2,19 +2,18 @@
 import express from "express";
 import SessionController from "../controllers/session.controller.js";
 import { authenticateJWT } from "../middleware/auth.js";
-import { ValidationHelper } from "../utils/helpers.js";
 import {
   sessionLimiter,
   createMessageLimiter,
 } from "../middleware/rate-limit.js";
 import {
-  validateSessionCreation,
-  validateSessionIdParam,
-  validateSessionFilters,
-  validateSendMessage,
-  validateMessageHistory,
-  validateSessionConnection,
-  validateSessionRestart,
+  validateSessionCreationMiddleware,
+  validateSessionIdParamMiddleware,
+  validateSessionFiltersMiddleware,
+  validateSendMessageMiddleware,
+  validateMessageHistoryMiddleware,
+  validateSessionConnectionMiddleware,
+  validateSessionRestartMiddleware,
 } from "../validation/session.validation.js";
 
 const router = express.Router();
@@ -25,8 +24,7 @@ router.use(authenticateJWT);
 // GET /api/v1/sessions - List User Sessions
 router.get(
   "/",
-  validateSessionFilters,
-  ValidationHelper.handleValidationErrors,
+  validateSessionFiltersMiddleware,
   SessionController.getSessions
 );
 
@@ -34,16 +32,14 @@ router.get(
 router.post(
   "/",
   sessionLimiter,
-  validateSessionCreation,
-  ValidationHelper.handleValidationErrors,
+  validateSessionCreationMiddleware,
   SessionController.createSession
 );
 
 // GET /api/v1/sessions/:id - Get Session Details
 router.get(
   "/:id",
-  validateSessionIdParam,
-  ValidationHelper.handleValidationErrors,
+  validateSessionIdParamMiddleware,
   SessionController.getSessionById
 );
 
@@ -51,24 +47,21 @@ router.get(
 router.post(
   "/:id/connect",
   sessionLimiter,
-  validateSessionConnection,
-  ValidationHelper.handleValidationErrors,
+  validateSessionConnectionMiddleware,
   SessionController.connectSession
 );
 
 // GET /api/v1/sessions/:id/qr - Get Session QR Code
 router.get(
   "/:id/qr",
-  validateSessionIdParam,
-  ValidationHelper.handleValidationErrors,
+  validateSessionIdParamMiddleware,
   SessionController.getQRCode
 );
 
 // GET /api/v1/sessions/:id/status - Get Session Status
 router.get(
   "/:id/status",
-  validateSessionIdParam,
-  ValidationHelper.handleValidationErrors,
+  validateSessionIdParamMiddleware,
   SessionController.getSessionStatus
 );
 
@@ -76,8 +69,7 @@ router.get(
 router.delete(
   "/:id",
   sessionLimiter,
-  validateSessionIdParam,
-  ValidationHelper.handleValidationErrors,
+  validateSessionIdParamMiddleware,
   SessionController.deleteSession
 );
 
@@ -85,16 +77,14 @@ router.delete(
 router.post(
   "/:id/send",
   createMessageLimiter,
-  validateSendMessage,
-  ValidationHelper.handleValidationErrors,
+  validateSendMessageMiddleware,
   SessionController.sendMessage
 );
 
 // GET /api/v1/sessions/:id/messages - Get Message History (Week 5)
 router.get(
   "/:id/messages",
-  validateMessageHistory,
-  ValidationHelper.handleValidationErrors,
+  validateMessageHistoryMiddleware,
   SessionController.getMessages
 );
 
@@ -102,8 +92,7 @@ router.get(
 router.post(
   "/:id/restart",
   sessionLimiter,
-  validateSessionRestart,
-  ValidationHelper.handleValidationErrors,
+  validateSessionRestartMiddleware,
   SessionController.restartSession
 );
 
@@ -111,8 +100,7 @@ router.post(
 router.post(
   "/:id/disconnect",
   sessionLimiter,
-  validateSessionIdParam,
-  ValidationHelper.handleValidationErrors,
+  validateSessionIdParamMiddleware,
   SessionController.disconnectSession
 );
 
@@ -120,8 +108,7 @@ router.post(
 router.post(
   "/:id/logout",
   sessionLimiter,
-  validateSessionIdParam,
-  ValidationHelper.handleValidationErrors,
+  validateSessionIdParamMiddleware,
   SessionController.logoutSession
 );
 

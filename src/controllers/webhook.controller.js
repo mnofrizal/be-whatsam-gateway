@@ -19,6 +19,16 @@ import logger from "../utils/logger.js";
  * Endpoint: POST /api/v1/webhooks/session-status
  */
 const handleSessionStatus = asyncHandler(async (req, res) => {
+  // Log the raw request first
+  logger.info("=== WEBHOOK SESSION STATUS RECEIVED ===", {
+    method: req.method,
+    url: req.originalUrl,
+    headers: req.headers,
+    bodyKeys: Object.keys(req.body),
+    bodySize: JSON.stringify(req.body).length,
+    timestamp: new Date().toISOString(),
+  });
+
   const {
     sessionId,
     status,
@@ -29,14 +39,28 @@ const handleSessionStatus = asyncHandler(async (req, res) => {
     timestamp,
   } = req.body;
 
-  logger.info("Received session status webhook", {
+  // Enhanced logging with QR code details
+  logger.info("Parsed webhook data", {
     sessionId,
     status,
     hasQrCode: !!qrCode,
+    qrCodeLength: qrCode ? qrCode.length : 0,
+    qrCodePrefix: qrCode ? qrCode.substring(0, 50) + "..." : null,
     phoneNumber,
     displayName,
     workerId,
     timestamp,
+    requestId: req.headers["x-request-id"] || "unknown",
+  });
+
+  // Log authentication details
+  logger.info("Webhook authentication", {
+    hasAuthHeader: !!req.headers.authorization,
+    authType: req.headers.authorization
+      ? req.headers.authorization.split(" ")[0]
+      : null,
+    userAgent: req.headers["user-agent"],
+    contentType: req.headers["content-type"],
   });
 
   try {

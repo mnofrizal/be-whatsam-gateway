@@ -1,0 +1,97 @@
+### Test Worker Self-Unregistration
+### This file tests the new worker self-unregistration endpoint
+
+### 1. Worker Self-Unregistration (Success Case)
+DELETE http://localhost:8000/api/v1/workers/unregister
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "test-worker-001",
+  "endpoint": "http://192.168.1.100:8001"
+}
+
+### 2. Worker Self-Unregistration (Missing Worker ID)
+DELETE http://localhost:8000/api/v1/workers/unregister
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "endpoint": "http://192.168.1.100:8001"
+}
+
+### 3. Worker Self-Unregistration (Invalid Endpoint)
+DELETE http://localhost:8000/api/v1/workers/unregister
+Authorization: Bearer {{workerToken}}
+Content-Type: application/json
+
+{
+  "workerId": "test-worker-001",
+  "endpoint": "invalid-url"
+}
+
+### 4. Worker Self-Unregistration (No Authentication)
+DELETE http://localhost:8000/api/v1/workers/unregister
+Content-Type: application/json
+
+{
+  "workerId": "test-worker-001",
+  "endpoint": "http://192.168.1.100:8001"
+}
+
+### 5. Worker Self-Unregistration (Wrong Authentication - JWT instead of Worker Token)
+DELETE http://localhost:8000/api/v1/workers/unregister
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "workerId": "test-worker-001",
+  "endpoint": "http://192.168.1.100:8001"
+}
+
+### Variables for testing
+# Set these variables in your REST client:
+# workerToken = your-worker-auth-token-from-env
+# jwtToken = your-jwt-token-from-login
+
+### Expected Responses:
+
+### 1. Success Case (200 OK):
+# {
+#   "success": true,
+#   "data": {
+#     "workerId": "test-worker-001",
+#     "migratedSessions": 0,
+#     "unregisteredAt": "2024-01-15T10:30:00.000Z"
+#   },
+#   "message": "Worker removed successfully",
+#   "timestamp": "2024-01-15T10:30:00.000Z"
+# }
+
+### 2. Missing Worker ID (400 Bad Request):
+# {
+#   "success": false,
+#   "error": "Worker ID is required",
+#   "timestamp": "2024-01-15T10:30:00.000Z"
+# }
+
+### 3. Invalid Endpoint (400 Bad Request):
+# {
+#   "success": false,
+#   "error": "Endpoint must be a valid HTTP/HTTPS URL",
+#   "timestamp": "2024-01-15T10:30:00.000Z"
+# }
+
+### 4. No Authentication (401 Unauthorized):
+# {
+#   "success": false,
+#   "error": "Access token required",
+#   "timestamp": "2024-01-15T10:30:00.000Z"
+# }
+
+### 5. Wrong Authentication (403 Forbidden):
+# {
+#   "success": false,
+#   "error": "Invalid worker token",
+#   "timestamp": "2024-01-15T10:30:00.000Z"
+# }

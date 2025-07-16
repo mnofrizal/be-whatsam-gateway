@@ -7,10 +7,9 @@ import {
   validateRegisterMiddleware,
   validateLoginMiddleware,
   validateChangePasswordMiddleware,
-  createValidationMiddleware,
-  refreshTokenSchema,
-  emailSchema,
-  resetPasswordSchema,
+  validateRefreshTokenMiddleware,
+  validateEmailMiddleware,
+  validateResetPasswordMiddleware,
 } from "../validation/auth.validation.js";
 
 const router = express.Router();
@@ -37,7 +36,7 @@ router.post("/logout", authenticateJWT, AuthController.logout);
 // POST /api/v1/auth/refresh - Refresh JWT Token
 router.post(
   "/refresh",
-  createValidationMiddleware(refreshTokenSchema),
+  validateRefreshTokenMiddleware,
   AuthController.refreshToken
 );
 
@@ -59,7 +58,7 @@ router.post("/deactivate", authenticateJWT, AuthController.deactivateAccount);
 router.post(
   "/forgot-password",
   sessionLimiter,
-  createValidationMiddleware(emailSchema),
+  validateEmailMiddleware,
   AuthController.forgotPassword
 );
 
@@ -67,7 +66,7 @@ router.post(
 router.post(
   "/reset-password",
   sessionLimiter,
-  createValidationMiddleware(resetPasswordSchema),
+  validateResetPasswordMiddleware,
   AuthController.resetPassword
 );
 

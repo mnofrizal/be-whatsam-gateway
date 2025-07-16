@@ -1,6 +1,7 @@
 // Helper utilities for WhatsApp Gateway PaaS Backend
 import { HTTP_STATUS, ERROR_CODES, REGEX, VALIDATION } from "./constants.js";
 import { validationResult } from "express-validator";
+import Joi from "joi";
 
 /**
  * Standardized API Response Helper
@@ -266,6 +267,38 @@ export class ValidationHelper {
 
     next();
   }
+
+  /**
+   * Create validation middleware from Joi schema
+   * @param {object} schema - Joi schema
+   * @param {string} property - Request property to validate ('body', 'params', 'query')
+   * @returns {Function} - Express middleware function
+   */
+  static createValidationMiddleware(schema, property = "body") {
+    return (req, res, next) => {
+      const { error, value } = schema.validate(req[property], {
+        abortEarly: false,
+        allowUnknown: false,
+        stripUnknown: true,
+      });
+
+      if (error) {
+        const formattedErrors = error.details.map((detail) => ({
+          field: detail.path.join("."),
+          message: detail.message,
+          value: detail.context?.value,
+        }));
+
+        return res
+          .status(400)
+          .json(ApiResponse.createValidationErrorResponse(formattedErrors));
+      }
+
+      // Replace the request property with validated and sanitized data
+      req[property] = value;
+      next();
+    };
+  }
 }
 
 /**
@@ -505,6 +538,10 @@ export class UtilHelper {
     };
   }
 }
+
+// Export createValidationMiddleware as named export
+export const createValidationMiddleware =
+  ValidationHelper.createValidationMiddleware;
 
 // Export all helpers
 export default {

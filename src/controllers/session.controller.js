@@ -1,5 +1,5 @@
 // Session Controller - HTTP request handlers for session management
-import { ApiResponse, ValidationHelper } from "../utils/helpers.js";
+import { ApiResponse } from "../utils/helpers.js";
 import { HTTP_STATUS, ERROR_CODES } from "../utils/constants.js";
 import { asyncHandler } from "../middleware/error-handler.js";
 import sessionService from "../services/session.service.js";

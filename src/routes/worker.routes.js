@@ -53,6 +53,15 @@ router.post(
   WorkerController.handleRecoveryStatus
 );
 
+// Worker Self-Unregistration (Internal - Worker to Backend)
+// DELETE /api/v1/workers/unregister - Worker unregisters itself from backend
+router.delete(
+  "/unregister",
+  authenticateWorker,
+  validateWorkerRegistration,
+  WorkerController.unregisterWorker
+);
+
 // Admin Worker Management (Requires JWT Authentication)
 // GET /api/v1/workers - Get all workers (Admin only)
 router.get(

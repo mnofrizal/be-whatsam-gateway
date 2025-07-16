@@ -1,5 +1,6 @@
 // User validation schemas and functions using Joi
 import Joi from "joi";
+import { createValidationMiddleware } from "../utils/helpers.js";
 
 // User profile update schema
 export const updateProfileSchema = Joi.object({
@@ -117,39 +118,6 @@ export const validateSessionsQueryInput = (data) => {
   }
 
   return value;
-};
-
-// Middleware functions for Express routes
-export const createValidationMiddleware = (schema) => {
-  return (req, res, next) => {
-    const dataToValidate = req.method === "GET" ? req.query : req.body;
-    const { error, value } = schema.validate(dataToValidate, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-
-    if (error) {
-      const validationErrors = error.details.map((detail) => ({
-        field: detail.path.join("."),
-        message: detail.message,
-      }));
-
-      return res.status(400).json({
-        success: false,
-        error: "Validation failed",
-        details: validationErrors,
-      });
-    }
-
-    // Store validated data
-    if (req.method === "GET") {
-      req.query = value;
-    } else {
-      req.body = value;
-    }
-
-    next();
-  };
 };
 
 // Export middleware functions

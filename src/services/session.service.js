@@ -3,6 +3,7 @@ import prisma from "../database/client.js";
 import Redis from "ioredis";
 import WorkerService from "./worker.service.js";
 import ProxyService from "./proxy.service.js";
+import socketService from "./socket.service.js";
 import logger from "../utils/logger.js";
 import {
   ConnectivityError,
@@ -206,6 +207,19 @@ export class SessionService {
           service: "SessionService",
         });
 
+        // Emit real-time QR code update if available
+        if (updatedSession.qrCode) {
+          socketService.emitQRCodeUpdate(sessionId, updatedSession.qrCode);
+        }
+
+        // Emit session status change
+        socketService.emitSessionStatusChange(
+          sessionId,
+          updatedSession.status,
+          updatedSession.phoneNumber,
+          updatedSession.displayName
+        );
+
         return {
           sessionId: updatedSession.id,
           status: updatedSession.status,
@@ -375,7 +389,16 @@ export class SessionService {
             // Update session object
             session.status = workerStatus.status.toUpperCase();
             session.phoneNumber = workerStatus.phoneNumber;
+            session.displayName = workerStatus.displayName;
             session.lastSeenAt = new Date();
+
+            // Emit real-time session status change
+            socketService.emitSessionStatusChange(
+              sessionId,
+              session.status,
+              session.phoneNumber,
+              session.displayName
+            );
           }
         } catch (workerError) {
           logger.warn("Failed to get real-time status from worker", {
@@ -522,6 +545,14 @@ export class SessionService {
               displayName: workerStatus.displayName,
               lastSeenAt: new Date(),
             });
+
+            // Emit real-time session status change
+            socketService.emitSessionStatusChange(
+              sessionId,
+              workerStatus.status.toUpperCase(),
+              workerStatus.phoneNumber,
+              workerStatus.displayName
+            );
           }
         } catch (workerError) {
           logger.warn("Failed to get real-time status from worker", {
@@ -608,6 +639,9 @@ export class SessionService {
         workerId: session.workerId,
         service: "SessionService",
       });
+
+      // Emit session deletion event
+      socketService.emitSessionStatusChange(sessionId, "DELETED", null, null);
 
       return {
         sessionId,
@@ -712,6 +746,14 @@ export class SessionService {
         service: "SessionService",
       });
 
+      // Emit session status change
+      socketService.emitSessionStatusChange(
+        sessionId,
+        updatedSession.status,
+        null,
+        null
+      );
+
       return {
         sessionId: updatedSession.id,
         name: updatedSession.name,
@@ -811,6 +853,14 @@ export class SessionService {
         service: "SessionService",
       });
 
+      // Emit session status change
+      socketService.emitSessionStatusChange(
+        sessionId,
+        updatedSession.status,
+        null,
+        null
+      );
+
       return {
         sessionId: updatedSession.id,
         name: updatedSession.name,
@@ -882,6 +932,19 @@ export class SessionService {
             newStatus: updatedSession.status,
             service: "SessionService",
           });
+
+          // Emit real-time QR code update if available
+          if (updatedSession.qrCode) {
+            socketService.emitQRCodeUpdate(sessionId, updatedSession.qrCode);
+          }
+
+          // Emit session status change
+          socketService.emitSessionStatusChange(
+            sessionId,
+            updatedSession.status,
+            updatedSession.phoneNumber,
+            updatedSession.displayName
+          );
 
           return {
             sessionId: updatedSession.id,
@@ -1134,6 +1197,14 @@ export class SessionService {
         status: statusData.status,
         service: "SessionService",
       });
+
+      // Emit real-time session status change
+      socketService.emitSessionStatusChange(
+        sessionId,
+        statusData.status,
+        statusData.phoneNumber,
+        statusData.displayName
+      );
     } catch (error) {
       logger.error("Failed to update session status", {
         sessionId,

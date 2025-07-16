@@ -270,6 +270,68 @@ export const deactivateAccount = async (userId) => {
   }
 };
 
+/**
+ * Initiate password reset process
+ * @param {string} email - User email
+ * @returns {object} - Success message
+ */
+export const forgotPassword = async (email) => {
+  try {
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, isActive: true },
+    });
+
+    // Always return success message for security (don't reveal if email exists)
+    if (!user || !user.isActive) {
+      logger.info("Password reset requested for non-existent/inactive user", {
+        email,
+      });
+      return {
+        message: "If the email exists, a password reset link has been sent.",
+      };
+    }
+
+    // TODO: Generate reset token and send email
+    // For now, just log the request
+    logger.info("Password reset requested", {
+      userId: user.id,
+      email: user.email,
+    });
+
+    return {
+      message: "If the email exists, a password reset link has been sent.",
+    };
+  } catch (error) {
+    logger.error("Password reset request failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Reset password with token
+ * @param {string} token - Reset token
+ * @param {string} newPassword - New password
+ * @returns {object} - Success message
+ */
+export const resetPassword = async (token, newPassword) => {
+  try {
+    // TODO: Implement token validation and password reset
+    // For now, just return not implemented message
+    logger.info("Password reset attempted", {
+      token: token?.substring(0, 10) + "...",
+    });
+
+    return {
+      message: "Password reset functionality is not yet implemented.",
+    };
+  } catch (error) {
+    logger.error("Password reset failed:", error);
+    throw error;
+  }
+};
+
 // Export all functions as named exports
 export default {
   register,
@@ -277,4 +339,6 @@ export default {
   getCurrentUser,
   changePassword,
   deactivateAccount,
+  forgotPassword,
+  resetPassword,
 };

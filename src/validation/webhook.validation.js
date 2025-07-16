@@ -1,196 +1,223 @@
-import { body } from "express-validator";
-import { ValidationHelper } from "../utils/helpers.js";
+import Joi from "joi";
+import { createValidationMiddleware } from "../utils/helpers.js";
 
 /**
  * Webhook Validation Rules
- * Validation for webhook endpoints using express-validator
+ * Validation for webhook endpoints using Joi schemas
  */
 
 /**
- * Validation for session status webhook
+ * Joi schema for session status webhook
  * POST /api/v1/webhooks/session-status
  */
-export const validateSessionStatus = [
-  body("sessionId")
-    .notEmpty()
-    .withMessage("Session ID is required")
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Session ID must be between 1 and 100 characters")
-    .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage(
-      "Session ID can only contain letters, numbers, hyphens, and underscores"
-    ),
+const sessionStatusSchema = Joi.object({
+  sessionId: Joi.string()
+    .min(1)
+    .max(100)
+    .pattern(/^[a-zA-Z0-9_-]+$/)
+    .required()
+    .messages({
+      "string.empty": "Session ID is required",
+      "string.min": "Session ID must be between 1 and 100 characters",
+      "string.max": "Session ID must be between 1 and 100 characters",
+      "string.pattern.base":
+        "Session ID can only contain letters, numbers, hyphens, and underscores",
+      "any.required": "Session ID is required",
+    }),
 
-  body("status")
-    .notEmpty()
-    .withMessage("Status is required")
-    .isIn([
+  status: Joi.string()
+    .valid(
       "INIT",
       "QR_REQUIRED",
       "CONNECTED",
       "DISCONNECTED",
       "RECONNECTING",
-      "ERROR",
-    ])
-    .withMessage(
-      "Status must be one of: INIT, QR_REQUIRED, CONNECTED, DISCONNECTED, RECONNECTING, ERROR"
-    ),
+      "ERROR"
+    )
+    .required()
+    .messages({
+      "string.empty": "Status is required",
+      "any.only":
+        "Status must be one of: INIT, QR_REQUIRED, CONNECTED, DISCONNECTED, RECONNECTING, ERROR",
+      "any.required": "Status is required",
+    }),
 
-  body("qrCode")
-    .optional({ nullable: true })
-    .isString()
-    .withMessage("QR code must be a string")
-    .isLength({ min: 1, max: 2000 })
-    .withMessage("QR code must be between 1 and 2000 characters"),
+  qrCode: Joi.string().min(1).max(2000).optional().allow(null).messages({
+    "string.min": "QR code must be between 1 and 2000 characters",
+    "string.max": "QR code must be between 1 and 2000 characters",
+  }),
 
-  body("phoneNumber")
-    .optional({ nullable: true })
-    .isString()
-    .withMessage("Phone number must be a string")
-    .matches(/^\+?[1-9]\d{1,14}$/)
-    .withMessage("Phone number must be a valid international format"),
+  phoneNumber: Joi.string()
+    .pattern(/^\+?[1-9]\d{1,14}$/)
+    .optional()
+    .allow(null)
+    .messages({
+      "string.pattern.base":
+        "Phone number must be a valid international format",
+    }),
 
-  body("displayName")
-    .optional({ nullable: true })
-    .isString()
-    .withMessage("Display name must be a string")
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Display name must be between 1 and 100 characters")
-    .trim(),
+  displayName: Joi.string()
+    .min(1)
+    .max(100)
+    .optional()
+    .allow(null)
+    .trim()
+    .messages({
+      "string.min": "Display name must be between 1 and 100 characters",
+      "string.max": "Display name must be between 1 and 100 characters",
+    }),
 
-  body("workerId")
-    .optional({ nullable: true })
-    .isString()
-    .withMessage("Worker ID must be a string")
-    .isLength({ min: 1, max: 50 })
-    .withMessage("Worker ID must be between 1 and 50 characters")
-    .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage(
-      "Worker ID can only contain letters, numbers, hyphens, and underscores"
-    ),
+  workerId: Joi.string()
+    .min(1)
+    .max(50)
+    .pattern(/^[a-zA-Z0-9_-]+$/)
+    .optional()
+    .allow(null)
+    .messages({
+      "string.min": "Worker ID must be between 1 and 50 characters",
+      "string.max": "Worker ID must be between 1 and 50 characters",
+      "string.pattern.base":
+        "Worker ID can only contain letters, numbers, hyphens, and underscores",
+    }),
 
-  body("timestamp")
-    .optional({ nullable: true })
-    .isISO8601()
-    .withMessage("Timestamp must be a valid ISO 8601 date"),
-
-  // Handle validation errors
-  ValidationHelper.handleValidationErrors,
-];
+  timestamp: Joi.date().iso().optional().allow(null).messages({
+    "date.format": "Timestamp must be a valid ISO 8601 date",
+  }),
+});
 
 /**
- * Validation for message status webhook
+ * Joi schema for message status webhook
  * POST /api/v1/webhooks/message-status
  */
-export const validateMessageStatus = [
-  body("sessionId")
-    .notEmpty()
-    .withMessage("Session ID is required")
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Session ID must be between 1 and 100 characters")
-    .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage(
-      "Session ID can only contain letters, numbers, hyphens, and underscores"
-    ),
+const messageStatusSchema = Joi.object({
+  sessionId: Joi.string()
+    .min(1)
+    .max(100)
+    .pattern(/^[a-zA-Z0-9_-]+$/)
+    .required()
+    .messages({
+      "string.empty": "Session ID is required",
+      "string.min": "Session ID must be between 1 and 100 characters",
+      "string.max": "Session ID must be between 1 and 100 characters",
+      "string.pattern.base":
+        "Session ID can only contain letters, numbers, hyphens, and underscores",
+      "any.required": "Session ID is required",
+    }),
 
-  body("messageId")
-    .notEmpty()
-    .withMessage("Message ID is required")
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Message ID must be between 1 and 100 characters")
-    .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage(
-      "Message ID can only contain letters, numbers, hyphens, and underscores"
-    ),
+  messageId: Joi.string()
+    .min(1)
+    .max(100)
+    .pattern(/^[a-zA-Z0-9_-]+$/)
+    .required()
+    .messages({
+      "string.empty": "Message ID is required",
+      "string.min": "Message ID must be between 1 and 100 characters",
+      "string.max": "Message ID must be between 1 and 100 characters",
+      "string.pattern.base":
+        "Message ID can only contain letters, numbers, hyphens, and underscores",
+      "any.required": "Message ID is required",
+    }),
 
-  body("status")
-    .notEmpty()
-    .withMessage("Status is required")
-    .isIn(["PENDING", "SENT", "DELIVERED", "READ", "FAILED"])
-    .withMessage(
-      "Status must be one of: PENDING, SENT, DELIVERED, READ, FAILED"
-    ),
+  status: Joi.string()
+    .valid("PENDING", "SENT", "DELIVERED", "READ", "FAILED")
+    .required()
+    .messages({
+      "string.empty": "Status is required",
+      "any.only":
+        "Status must be one of: PENDING, SENT, DELIVERED, READ, FAILED",
+      "any.required": "Status is required",
+    }),
 
-  body("timestamp")
-    .optional()
-    .isISO8601()
-    .withMessage("Timestamp must be a valid ISO 8601 date"),
+  timestamp: Joi.date().iso().optional().messages({
+    "date.format": "Timestamp must be a valid ISO 8601 date",
+  }),
 
-  body("deliveredAt")
-    .optional()
-    .isISO8601()
-    .withMessage("Delivered at must be a valid ISO 8601 date"),
+  deliveredAt: Joi.date().iso().optional().messages({
+    "date.format": "Delivered at must be a valid ISO 8601 date",
+  }),
 
-  body("readAt")
-    .optional()
-    .isISO8601()
-    .withMessage("Read at must be a valid ISO 8601 date"),
+  readAt: Joi.date().iso().optional().messages({
+    "date.format": "Read at must be a valid ISO 8601 date",
+  }),
 
-  body("errorMessage")
-    .optional()
-    .isString()
-    .withMessage("Error message must be a string")
-    .isLength({ max: 500 })
-    .withMessage("Error message must not exceed 500 characters"),
-
-  // Handle validation errors
-  ValidationHelper.handleValidationErrors,
-];
+  errorMessage: Joi.string().max(500).optional().messages({
+    "string.max": "Error message must not exceed 500 characters",
+  }),
+});
 
 /**
- * Validation for worker heartbeat webhook
+ * Joi schema for worker heartbeat webhook
  * POST /api/v1/webhooks/worker-heartbeat
  */
-export const validateWorkerHeartbeat = [
-  body("workerId")
-    .notEmpty()
-    .withMessage("Worker ID is required")
-    .isLength({ min: 1, max: 50 })
-    .withMessage("Worker ID must be between 1 and 50 characters")
-    .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage(
-      "Worker ID can only contain letters, numbers, hyphens, and underscores"
-    ),
+const workerHeartbeatSchema = Joi.object({
+  workerId: Joi.string()
+    .min(1)
+    .max(50)
+    .pattern(/^[a-zA-Z0-9_-]+$/)
+    .required()
+    .messages({
+      "string.empty": "Worker ID is required",
+      "string.min": "Worker ID must be between 1 and 50 characters",
+      "string.max": "Worker ID must be between 1 and 50 characters",
+      "string.pattern.base":
+        "Worker ID can only contain letters, numbers, hyphens, and underscores",
+      "any.required": "Worker ID is required",
+    }),
 
-  body("status")
-    .notEmpty()
-    .withMessage("Status is required")
-    .isIn(["ONLINE", "OFFLINE", "MAINTENANCE"])
-    .withMessage("Status must be one of: ONLINE, OFFLINE, MAINTENANCE"),
+  status: Joi.string()
+    .valid("ONLINE", "OFFLINE", "MAINTENANCE")
+    .required()
+    .messages({
+      "string.empty": "Status is required",
+      "any.only": "Status must be one of: ONLINE, OFFLINE, MAINTENANCE",
+      "any.required": "Status is required",
+    }),
 
-  body("sessionCount")
+  sessionCount: Joi.number().integer().min(0).max(10000).optional().messages({
+    "number.min": "Session count must be an integer between 0 and 10000",
+    "number.max": "Session count must be an integer between 0 and 10000",
+    "number.integer": "Session count must be an integer",
+  }),
+
+  cpuUsage: Joi.number().min(0).max(100).optional().messages({
+    "number.min": "CPU usage must be a number between 0 and 100",
+    "number.max": "CPU usage must be a number between 0 and 100",
+  }),
+
+  memoryUsage: Joi.number().min(0).max(100).optional().messages({
+    "number.min": "Memory usage must be a number between 0 and 100",
+    "number.max": "Memory usage must be a number between 0 and 100",
+  }),
+
+  uptime: Joi.number().integer().min(0).optional().messages({
+    "number.min": "Uptime must be a positive integer (seconds)",
+    "number.integer": "Uptime must be an integer",
+  }),
+
+  activeConnections: Joi.number()
+    .integer()
+    .min(0)
+    .max(10000)
     .optional()
-    .isInt({ min: 0, max: 10000 })
-    .withMessage("Session count must be an integer between 0 and 10000"),
+    .messages({
+      "number.min": "Active connections must be an integer between 0 and 10000",
+      "number.max": "Active connections must be an integer between 0 and 10000",
+      "number.integer": "Active connections must be an integer",
+    }),
 
-  body("cpuUsage")
-    .optional()
-    .isFloat({ min: 0, max: 100 })
-    .withMessage("CPU usage must be a number between 0 and 100"),
+  timestamp: Joi.date().iso().optional().messages({
+    "date.format": "Timestamp must be a valid ISO 8601 date",
+  }),
+});
 
-  body("memoryUsage")
-    .optional()
-    .isFloat({ min: 0, max: 100 })
-    .withMessage("Memory usage must be a number between 0 and 100"),
-
-  body("uptime")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Uptime must be a positive integer (seconds)"),
-
-  body("activeConnections")
-    .optional()
-    .isInt({ min: 0, max: 10000 })
-    .withMessage("Active connections must be an integer between 0 and 10000"),
-
-  body("timestamp")
-    .optional()
-    .isISO8601()
-    .withMessage("Timestamp must be a valid ISO 8601 date"),
-
-  // Handle validation errors
-  ValidationHelper.handleValidationErrors,
-];
+// Export pre-configured validation middleware
+export const validateSessionStatusMiddleware =
+  createValidationMiddleware(sessionStatusSchema);
+export const validateMessageStatusMiddleware =
+  createValidationMiddleware(messageStatusSchema);
+export const validateWorkerHeartbeatMiddleware = createValidationMiddleware(
+  workerHeartbeatSchema
+);
 
 /**
  * Common validation for all webhook endpoints
@@ -245,7 +272,7 @@ export const validateWebhookPayloadSize = (req, res, next) => {
 export const validateSessionIdFormat = (req, res, next) => {
   const { sessionId } = req.body;
 
-  if (sessionId && !ValidationHelper.isValidSessionId(sessionId)) {
+  if (sessionId && !/^[a-zA-Z0-9_-]{1,100}$/.test(sessionId)) {
     return res.status(400).json({
       success: false,
       error: "Invalid session ID format",
@@ -283,11 +310,11 @@ export const validateWorkerIdFormat = (req, res, next) => {
   next();
 };
 
-// Export all validation functions
+// Export all validation functions (maintaining backward compatibility)
 export default {
-  validateSessionStatus,
-  validateMessageStatus,
-  validateWorkerHeartbeat,
+  validateSessionStatusMiddleware,
+  validateMessageStatusMiddleware,
+  validateWorkerHeartbeatMiddleware,
   validateWebhookCommon,
   validateWebhookPayloadSize,
   validateSessionIdFormat,

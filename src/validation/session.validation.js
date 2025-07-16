@@ -1,95 +1,95 @@
 // Session Validation - Input validation for session operations
-import { body, param, query } from "express-validator";
+import Joi from "joi";
+import { createValidationMiddleware } from "../utils/helpers.js";
 
 /**
- * Validation for session creation
+ * Joi schema for session creation
  */
-export const validateSessionCreation = [
-  body("name")
-    .notEmpty()
-    .withMessage("Session name is required")
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Session name must be between 1 and 100 characters")
-    .trim(),
+const sessionCreationSchema = Joi.object({
+  name: Joi.string().min(1).max(100).required().trim().messages({
+    "string.empty": "Session name is required",
+    "string.min": "Session name must be between 1 and 100 characters",
+    "string.max": "Session name must be between 1 and 100 characters",
+    "any.required": "Session name is required",
+  }),
 
-  body("displayName")
-    .optional()
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Display name must be between 1 and 100 characters")
-    .trim(),
+  displayName: Joi.string().min(1).max(100).optional().trim().messages({
+    "string.min": "Display name must be between 1 and 100 characters",
+    "string.max": "Display name must be between 1 and 100 characters",
+  }),
 
-  body("sessionId")
+  sessionId: Joi.string()
+    .min(3)
+    .max(100)
+    .pattern(/^[a-zA-Z0-9_-]+$/)
     .optional()
-    .isLength({ min: 3, max: 100 })
-    .withMessage("Session ID must be between 3 and 100 characters")
-    .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage(
-      "Session ID can only contain letters, numbers, hyphens, and underscores"
-    ),
-];
+    .messages({
+      "string.min": "Session ID must be between 3 and 100 characters",
+      "string.max": "Session ID must be between 3 and 100 characters",
+      "string.pattern.base":
+        "Session ID can only contain letters, numbers, hyphens, and underscores",
+    }),
+});
 
 /**
- * Validation for session ID parameter
+ * Joi schema for session ID parameter
  */
-export const validateSessionIdParam = [
-  param("id")
-    .notEmpty()
-    .withMessage("Session ID is required")
-    .isLength({ min: 3, max: 100 })
-    .withMessage("Session ID must be between 3 and 100 characters"),
-];
+const sessionIdParamSchema = Joi.object({
+  id: Joi.string().min(3).max(100).required().messages({
+    "string.empty": "Session ID is required",
+    "string.min": "Session ID must be between 3 and 100 characters",
+    "string.max": "Session ID must be between 3 and 100 characters",
+    "any.required": "Session ID is required",
+  }),
+});
 
 /**
- * Validation for session filters (query parameters)
+ * Joi schema for session filters (query parameters)
  */
-export const validateSessionFilters = [
-  query("status")
-    .optional()
-    .isIn([
+const sessionFiltersSchema = Joi.object({
+  status: Joi.string()
+    .valid(
       "CONNECTED",
       "DISCONNECTED",
       "INITIALIZING",
       "QR_REQUIRED",
       "ERROR",
-      "RECONNECTING",
-    ])
-    .withMessage(
-      "Status must be one of: CONNECTED, DISCONNECTED, INITIALIZING, QR_REQUIRED, ERROR, RECONNECTING"
-    ),
-
-  query("limit")
+      "RECONNECTING"
+    )
     .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage("Limit must be between 1 and 100"),
+    .messages({
+      "any.only":
+        "Status must be one of: CONNECTED, DISCONNECTED, INITIALIZING, QR_REQUIRED, ERROR, RECONNECTING",
+    }),
 
-  query("offset")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Offset must be a non-negative integer"),
-];
+  limit: Joi.number().integer().min(1).max(100).optional().messages({
+    "number.min": "Limit must be between 1 and 100",
+    "number.max": "Limit must be between 1 and 100",
+    "number.integer": "Limit must be an integer",
+  }),
+
+  offset: Joi.number().integer().min(0).optional().messages({
+    "number.min": "Offset must be a non-negative integer",
+    "number.integer": "Offset must be an integer",
+  }),
+});
 
 /**
- * Validation for sending messages
+ * Joi schema for sending messages (body validation)
  */
-export const validateSendMessage = [
-  param("id")
-    .notEmpty()
-    .withMessage("Session ID is required")
-    .isLength({ min: 3, max: 100 })
-    .withMessage("Session ID must be between 3 and 100 characters"),
+const sendMessageSchema = Joi.object({
+  to: Joi.string()
+    .pattern(/^([0-9]+(@[a-z.]+)?|[0-9]+@[a-z.]+)$/)
+    .required()
+    .messages({
+      "string.empty": "Recipient is required",
+      "string.pattern.base":
+        "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+      "any.required": "Recipient is required",
+    }),
 
-  body("to")
-    .notEmpty()
-    .withMessage("Recipient is required")
-    .matches(/^([0-9]+(@[a-z.]+)?|[0-9]+@[a-z.]+)$/)
-    .withMessage(
-      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)"
-    ),
-
-  body("type")
-    .notEmpty()
-    .withMessage("Message type is required")
-    .isIn([
+  type: Joi.string()
+    .valid(
       "text",
       "image",
       "document",
@@ -97,125 +97,129 @@ export const validateSendMessage = [
       "video",
       "sticker",
       "location",
-      "contact",
-    ])
-    .withMessage(
-      "Type must be one of: text, image, document, audio, video, sticker, location, contact"
-    ),
+      "contact"
+    )
+    .required()
+    .messages({
+      "string.empty": "Message type is required",
+      "any.only":
+        "Type must be one of: text, image, document, audio, video, sticker, location, contact",
+      "any.required": "Message type is required",
+    }),
 
-  body("message")
-    .if(body("type").equals("text"))
-    .notEmpty()
-    .withMessage("Message content is required for text messages")
-    .isLength({ min: 1, max: 4096 })
-    .withMessage("Message content must be between 1 and 4096 characters"),
+  message: Joi.when("type", {
+    is: "text",
+    then: Joi.string().min(1).max(4096).required().messages({
+      "string.empty": "Message content is required for text messages",
+      "string.min": "Message content must be between 1 and 4096 characters",
+      "string.max": "Message content must be between 1 and 4096 characters",
+      "any.required": "Message content is required for text messages",
+    }),
+    otherwise: Joi.optional(),
+  }),
 
-  body("media")
-    .if(body("type").isIn(["image", "document", "audio", "video", "sticker"]))
-    .notEmpty()
-    .withMessage("Media is required for media messages")
-    .isBase64()
-    .withMessage("Media must be base64 encoded"),
+  media: Joi.when("type", {
+    is: Joi.valid("image", "document", "audio", "video", "sticker"),
+    then: Joi.string().base64().required().messages({
+      "string.empty": "Media is required for media messages",
+      "string.base64": "Media must be base64 encoded",
+      "any.required": "Media is required for media messages",
+    }),
+    otherwise: Joi.optional(),
+  }),
 
-  body("caption")
-    .optional()
-    .isLength({ max: 1024 })
-    .withMessage("Caption must not exceed 1024 characters"),
+  caption: Joi.string().max(1024).optional().messages({
+    "string.max": "Caption must not exceed 1024 characters",
+  }),
 
-  body("filename")
-    .if(body("type").equals("document"))
-    .notEmpty()
-    .withMessage("Filename is required for document messages")
-    .isLength({ min: 1, max: 255 })
-    .withMessage("Filename must be between 1 and 255 characters"),
-];
-
-/**
- * Validation for message history query parameters
- */
-export const validateMessageHistory = [
-  param("id")
-    .notEmpty()
-    .withMessage("Session ID is required")
-    .isLength({ min: 3, max: 100 })
-    .withMessage("Session ID must be between 3 and 100 characters"),
-
-  query("limit")
-    .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage("Limit must be between 1 and 100"),
-
-  query("offset")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Offset must be a non-negative integer"),
-
-  query("direction")
-    .optional()
-    .isIn(["INBOUND", "OUTBOUND"])
-    .withMessage("Direction must be either INBOUND or OUTBOUND"),
-
-  query("status")
-    .optional()
-    .isIn(["SENT", "DELIVERED", "READ", "FAILED", "PENDING"])
-    .withMessage(
-      "Status must be one of: SENT, DELIVERED, READ, FAILED, PENDING"
-    ),
-
-  query("from")
-    .optional()
-    .isISO8601()
-    .withMessage("From date must be in ISO 8601 format"),
-
-  query("to")
-    .optional()
-    .isISO8601()
-    .withMessage("To date must be in ISO 8601 format"),
-];
+  filename: Joi.when("type", {
+    is: "document",
+    then: Joi.string().min(1).max(255).required().messages({
+      "string.empty": "Filename is required for document messages",
+      "string.min": "Filename must be between 1 and 255 characters",
+      "string.max": "Filename must be between 1 and 255 characters",
+      "any.required": "Filename is required for document messages",
+    }),
+    otherwise: Joi.optional(),
+  }),
+});
 
 /**
- * Validation for session connection
+ * Joi schema for message history query parameters
  */
-export const validateSessionConnection = [
-  param("id")
-    .notEmpty()
-    .withMessage("Session ID is required")
-    .isLength({ min: 3, max: 100 })
-    .withMessage("Session ID must be between 3 and 100 characters"),
-];
+const messageHistorySchema = Joi.object({
+  limit: Joi.number().integer().min(1).max(100).optional().messages({
+    "number.min": "Limit must be between 1 and 100",
+    "number.max": "Limit must be between 1 and 100",
+    "number.integer": "Limit must be an integer",
+  }),
+
+  offset: Joi.number().integer().min(0).optional().messages({
+    "number.min": "Offset must be a non-negative integer",
+    "number.integer": "Offset must be an integer",
+  }),
+
+  direction: Joi.string().valid("INBOUND", "OUTBOUND").optional().messages({
+    "any.only": "Direction must be either INBOUND or OUTBOUND",
+  }),
+
+  status: Joi.string()
+    .valid("SENT", "DELIVERED", "READ", "FAILED", "PENDING")
+    .optional()
+    .messages({
+      "any.only":
+        "Status must be one of: SENT, DELIVERED, READ, FAILED, PENDING",
+    }),
+
+  from: Joi.date().iso().optional().messages({
+    "date.format": "From date must be in ISO 8601 format",
+  }),
+
+  to: Joi.date().iso().optional().messages({
+    "date.format": "To date must be in ISO 8601 format",
+  }),
+});
 
 /**
- * Validation for session restart
+ * Joi schema for session connection
  */
-export const validateSessionRestart = [
-  param("id")
-    .notEmpty()
-    .withMessage("Session ID is required")
-    .isLength({ min: 3, max: 100 })
-    .withMessage("Session ID must be between 3 and 100 characters"),
-];
+const sessionConnectionSchema = Joi.object({
+  id: Joi.string().min(3).max(100).required().messages({
+    "string.empty": "Session ID is required",
+    "string.min": "Session ID must be between 3 and 100 characters",
+    "string.max": "Session ID must be between 3 and 100 characters",
+    "any.required": "Session ID is required",
+  }),
+});
 
 /**
- * Validation for webhook configuration (future use)
+ * Joi schema for session restart
  */
-export const validateWebhookConfig = [
-  param("id")
-    .notEmpty()
-    .withMessage("Session ID is required")
-    .isLength({ min: 3, max: 100 })
-    .withMessage("Session ID must be between 3 and 100 characters"),
+const sessionRestartSchema = Joi.object({
+  id: Joi.string().min(3).max(100).required().messages({
+    "string.empty": "Session ID is required",
+    "string.min": "Session ID must be between 3 and 100 characters",
+    "string.max": "Session ID must be between 3 and 100 characters",
+    "any.required": "Session ID is required",
+  }),
+});
 
-  body("url")
-    .notEmpty()
-    .withMessage("Webhook URL is required")
-    .isURL({ protocols: ["http", "https"], require_protocol: true })
-    .withMessage("Webhook URL must be a valid HTTP/HTTPS URL"),
+/**
+ * Joi schema for webhook configuration (future use)
+ */
+const webhookConfigSchema = Joi.object({
+  url: Joi.string()
+    .uri({ scheme: ["http", "https"] })
+    .required()
+    .messages({
+      "string.empty": "Webhook URL is required",
+      "string.uri": "Webhook URL must be a valid HTTP/HTTPS URL",
+      "any.required": "Webhook URL is required",
+    }),
 
-  body("events")
-    .isArray({ min: 1 })
-    .withMessage("Events must be an array with at least one event")
-    .custom((events) => {
-      const validEvents = [
+  events: Joi.array()
+    .items(
+      Joi.string().valid(
         "message.sent",
         "message.delivered",
         "message.read",
@@ -223,21 +227,54 @@ export const validateWebhookConfig = [
         "session.connected",
         "session.disconnected",
         "session.qr_required",
-        "session.error",
-      ];
-
-      for (const event of events) {
-        if (!validEvents.includes(event)) {
-          throw new Error(
-            `Invalid event: ${event}. Valid events are: ${validEvents.join(", ")}`
-          );
-        }
-      }
-      return true;
+        "session.error"
+      )
+    )
+    .min(1)
+    .required()
+    .messages({
+      "array.min": "Events must be an array with at least one event",
+      "any.only":
+        "Invalid event. Valid events are: message.sent, message.delivered, message.read, message.failed, session.connected, session.disconnected, session.qr_required, session.error",
+      "any.required": "Events array is required",
     }),
 
-  body("secret")
-    .optional()
-    .isLength({ min: 8, max: 64 })
-    .withMessage("Webhook secret must be between 8 and 64 characters"),
-];
+  secret: Joi.string().min(8).max(64).optional().messages({
+    "string.min": "Webhook secret must be between 8 and 64 characters",
+    "string.max": "Webhook secret must be between 8 and 64 characters",
+  }),
+});
+
+// Export pre-configured validation middleware
+export const validateSessionCreationMiddleware = createValidationMiddleware(
+  sessionCreationSchema,
+  "body"
+);
+export const validateSessionIdParamMiddleware = createValidationMiddleware(
+  sessionIdParamSchema,
+  "params"
+);
+export const validateSessionFiltersMiddleware = createValidationMiddleware(
+  sessionFiltersSchema,
+  "query"
+);
+export const validateSendMessageMiddleware = createValidationMiddleware(
+  sendMessageSchema,
+  "body"
+);
+export const validateMessageHistoryMiddleware = createValidationMiddleware(
+  messageHistorySchema,
+  "query"
+);
+export const validateSessionConnectionMiddleware = createValidationMiddleware(
+  sessionConnectionSchema,
+  "params"
+);
+export const validateSessionRestartMiddleware = createValidationMiddleware(
+  sessionRestartSchema,
+  "params"
+);
+export const validateWebhookConfigMiddleware = createValidationMiddleware(
+  webhookConfigSchema,
+  "body"
+);

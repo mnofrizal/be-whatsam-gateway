@@ -1,5 +1,5 @@
 // Worker Controller - HTTP request handlers for worker management
-import { ApiResponse, ValidationHelper } from "../utils/helpers.js";
+import { ApiResponse } from "../utils/helpers.js";
 import { HTTP_STATUS, ERROR_CODES } from "../utils/constants.js";
 import { asyncHandler } from "../middleware/error-handler.js";
 import workerService from "../services/worker.service.js";
@@ -77,6 +77,41 @@ export class WorkerController {
         },
         {
           message: "Worker registered successfully",
+        }
+      )
+    );
+  });
+
+  /**
+   * Unregister worker (called by worker itself during shutdown)
+   * DELETE /api/v1/workers/unregister
+   */
+  static unregisterWorker = asyncHandler(async (req, res) => {
+    const { workerId, endpoint } = req.body;
+
+    // Normalize workerId in controller layer
+    const normalizedWorkerId = normalizeWorkerId(workerId);
+
+    // Validation is now handled by middleware
+    const result = await workerService.removeWorker(normalizedWorkerId);
+
+    logger.info("Worker self-unregistration successful", {
+      workerId: normalizedWorkerId,
+      endpoint,
+      migratedSessions: result.migratedSessions,
+      ip: req.ip,
+      userAgent: req.get("User-Agent"),
+    });
+
+    return res.status(HTTP_STATUS.OK).json(
+      ApiResponse.createSuccessResponse(
+        {
+          workerId: normalizedWorkerId,
+          migratedSessions: result.migratedSessions,
+          unregisteredAt: new Date().toISOString(),
+        },
+        {
+          message: result.message,
         }
       )
     );

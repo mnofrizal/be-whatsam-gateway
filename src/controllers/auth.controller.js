@@ -207,6 +207,50 @@ export const deactivateAccount = asyncHandler(async (req, res) => {
   );
 });
 
+/**
+ * Forgot password - Send password reset email
+ * POST /api/v1/auth/forgot-password
+ */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  logger.info("Password reset requested", {
+    email,
+    ip: req.ip,
+    userAgent: req.get("User-Agent"),
+  });
+
+  const result = await authService.forgotPassword(email);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(null, {
+      message: result.message,
+    })
+  );
+});
+
+/**
+ * Reset password - Confirm password reset with token
+ * POST /api/v1/auth/reset-password
+ */
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  logger.info("Password reset attempted", {
+    token: token?.substring(0, 10) + "...", // Log partial token for debugging
+    ip: req.ip,
+    userAgent: req.get("User-Agent"),
+  });
+
+  const result = await authService.resetPassword(token, newPassword);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(null, {
+      message: result.message,
+    })
+  );
+});
+
 // Export default object with all controller functions
 export default {
   register,
@@ -216,4 +260,6 @@ export default {
   logout,
   changePassword,
   deactivateAccount,
+  forgotPassword,
+  resetPassword,
 };

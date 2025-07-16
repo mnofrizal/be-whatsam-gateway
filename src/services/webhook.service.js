@@ -1,5 +1,6 @@
 import prisma from "../database/client.js";
 import logger from "../utils/logger.js";
+import socketService from "./socket.service.js";
 
 /**
  * Update session status from worker webhook
@@ -11,6 +12,21 @@ export const updateSessionStatus = async (sessionId, statusData) => {
   try {
     const { status, qrCode, phoneNumber, displayName, workerId, timestamp } =
       statusData;
+
+    // Enhanced logging for debugging QR code issues
+    logger.info("=== WEBHOOK SERVICE: Processing session status update ===", {
+      sessionId,
+      status,
+      hasQrCode: !!qrCode,
+      qrCodeLength: qrCode ? qrCode.length : 0,
+      qrCodeType: qrCode ? typeof qrCode : null,
+      qrCodeSample: qrCode ? qrCode.substring(0, 100) + "..." : null,
+      phoneNumber,
+      displayName,
+      workerId,
+      timestamp,
+      receivedAt: new Date().toISOString(),
+    });
 
     // Prepare update data
     const updateData = {
@@ -38,11 +54,55 @@ export const updateSessionStatus = async (sessionId, statusData) => {
       updateData.workerId = workerId;
     }
 
+    // Log the update data before database operation
+    logger.info("Database update data prepared", {
+      sessionId,
+      updateData: {
+        ...updateData,
+        qrCode: updateData.qrCode
+          ? `[QR_CODE_${updateData.qrCode.length}_chars]`
+          : null,
+      },
+    });
+
     // Update session in database
     const updatedSession = await prisma.session.update({
       where: { id: sessionId },
       data: updateData,
     });
+
+    logger.info("Database update completed", {
+      sessionId,
+      updatedStatus: updatedSession.status,
+      hasQrCodeInDB: !!updatedSession.qrCode,
+      qrCodeLengthInDB: updatedSession.qrCode
+        ? updatedSession.qrCode.length
+        : 0,
+    });
+
+    // Emit real-time events via Socket.IO
+    if (qrCode) {
+      logger.info("Emitting QR code update via Socket.IO", {
+        sessionId,
+        qrCodeLength: qrCode.length,
+      });
+      // Emit QR code update
+      socketService.emitQRCodeUpdate(sessionId, qrCode);
+    }
+
+    // Emit session status change
+    logger.info("Emitting session status change via Socket.IO", {
+      sessionId,
+      status: updatedSession.status,
+      phoneNumber: updatedSession.phoneNumber,
+      displayName: updatedSession.displayName,
+    });
+    socketService.emitSessionStatusChange(
+      sessionId,
+      updatedSession.status,
+      updatedSession.phoneNumber,
+      updatedSession.displayName
+    );
 
     logger.info("Session status updated via webhook", {
       sessionId,
@@ -94,6 +154,14 @@ export const updateMessageStatus = async (messageId, statusData) => {
       where: { id: messageId },
       data: updateData,
     });
+
+    // Emit real-time message status update via Socket.IO
+    socketService.emitMessageStatusUpdate(
+      updatedMessage.sessionId,
+      messageId,
+      updatedMessage.status,
+      updatedMessage.deliveredAt
+    );
 
     logger.info("Message status updated via webhook", {
       messageId,
@@ -156,6 +224,16 @@ export const updateWorkerHeartbeat = async (workerId, heartbeatData) => {
         },
       });
     }
+
+    // Emit real-time worker status update via Socket.IO
+    socketService.emitWorkerStatusUpdate(workerId, updatedWorker.status, {
+      sessionCount: updatedWorker.sessionCount,
+      cpuUsage: updatedWorker.cpuUsage,
+      memoryUsage: updatedWorker.memoryUsage,
+      lastHeartbeat: updatedWorker.lastHeartbeat,
+      uptime: uptime || 0,
+      activeConnections: activeConnections || 0,
+    });
 
     logger.info("Worker heartbeat updated via webhook", {
       workerId,

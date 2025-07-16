@@ -1,336 +1,341 @@
 // Worker Validation - Input validation for worker operations
-import { body, param, query } from "express-validator";
+import Joi from "joi";
+import { createValidationMiddleware } from "../utils/helpers.js";
 
 /**
- * Validation for worker registration
+ * Joi schema for worker registration
  */
-export const validateWorkerRegistration = [
-  body("workerId")
-    .notEmpty()
-    .withMessage("Worker ID is required")
-    .isLength({ min: 3, max: 50 })
-    .withMessage("Worker ID must be between 3 and 50 characters")
-    .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage(
-      "Worker ID can only contain letters, numbers, hyphens, and underscores"
-    ),
+const workerRegistrationSchema = Joi.object({
+  workerId: Joi.string()
+    .min(3)
+    .max(50)
+    .pattern(/^[a-zA-Z0-9_-]+$/)
+    .required()
+    .messages({
+      "string.min": "Worker ID must be at least 3 characters long",
+      "string.max": "Worker ID must not exceed 50 characters",
+      "string.pattern.base":
+        "Worker ID can only contain letters, numbers, hyphens, and underscores",
+      "any.required": "Worker ID is required",
+    }),
 
-  body("endpoint")
-    .notEmpty()
-    .withMessage("Endpoint is required")
-    .isURL({ protocols: ["http", "https"], require_protocol: true })
-    .withMessage("Endpoint must be a valid HTTP/HTTPS URL"),
+  endpoint: Joi.string()
+    .uri({ scheme: ["http", "https"] })
+    .required()
+    .messages({
+      "string.uri": "Endpoint must be a valid HTTP/HTTPS URL",
+      "any.required": "Endpoint is required",
+    }),
 
-  body("maxSessions")
+  maxSessions: Joi.number().integer().min(1).max(1000).optional().messages({
+    "number.min": "Max sessions must be at least 1",
+    "number.max": "Max sessions must not exceed 1000",
+    "number.integer": "Max sessions must be an integer",
+  }),
+
+  description: Joi.string().max(255).optional().messages({
+    "string.max": "Description must not exceed 255 characters",
+  }),
+
+  version: Joi.string()
+    .pattern(/^\d+\.\d+\.\d+$/)
     .optional()
-    .isInt({ min: 1, max: 1000 })
-    .withMessage("Max sessions must be between 1 and 1000"),
+    .messages({
+      "string.pattern.base": "Version must be in format x.y.z (e.g., 1.0.0)",
+    }),
 
-  body("description")
+  environment: Joi.string()
+    .valid("DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION")
     .optional()
-    .isLength({ max: 255 })
-    .withMessage("Description must not exceed 255 characters"),
-
-  body("version")
-    .optional()
-    .matches(/^\d+\.\d+\.\d+$/)
-    .withMessage("Version must be in format x.y.z (e.g., 1.0.0)"),
-
-  body("environment")
-    .optional()
-    .isIn(["DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION"])
-    .withMessage(
-      "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION"
-    ),
-];
+    .messages({
+      "any.only":
+        "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION",
+    }),
+});
 
 /**
- * Validation for enhanced worker heartbeat update
- * Enhanced heartbeat format only - legacy formats no longer supported
+ * Joi schema for enhanced worker heartbeat update
  */
+const workerHeartbeatSchema = Joi.object({
+  sessions: Joi.array()
+    .items(
+      Joi.object({
+        sessionId: Joi.string().min(1).max(100).required().messages({
+          "string.min": "Session ID must be at least 1 character long",
+          "string.max": "Session ID must not exceed 100 characters",
+          "any.required": "Session ID is required for each session",
+        }),
+
+        status: Joi.string()
+          .valid(
+            "CONNECTED",
+            "DISCONNECTED",
+            "QR_REQUIRED",
+            "RECONNECTING",
+            "INIT",
+            "ERROR"
+          )
+          .required()
+          .messages({
+            "any.only":
+              "Session status must be one of: CONNECTED, DISCONNECTED, QR_REQUIRED, RECONNECTING, INIT, ERROR",
+            "any.required": "Session status is required",
+          }),
+
+        phoneNumber: Joi.string()
+          .pattern(/^\+?[1-9]\d{1,14}$/)
+          .optional()
+          .messages({
+            "string.pattern.base":
+              "Phone number must be a valid international format",
+          }),
+
+        lastActivity: Joi.date().iso().optional().messages({
+          "date.format": "Last activity must be a valid ISO 8601 timestamp",
+        }),
+      })
+    )
+    .required()
+    .messages({
+      "array.base": "Sessions must be an array",
+      "any.required": "Sessions array is required for enhanced heartbeat",
+    }),
+
+  capabilities: Joi.object({
+    maxSessions: Joi.number().integer().min(1).max(1000).optional().messages({
+      "number.min": "Max sessions capability must be at least 1",
+      "number.max": "Max sessions capability must not exceed 1000",
+      "number.integer": "Max sessions capability must be an integer",
+    }),
+
+    version: Joi.string()
+      .pattern(/^\d+\.\d+\.\d+$/)
+      .optional()
+      .messages({
+        "string.pattern.base":
+          "Version capability must be in format x.y.z (e.g., 1.0.0)",
+      }),
+
+    environment: Joi.string()
+      .valid("DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION")
+      .optional()
+      .messages({
+        "any.only":
+          "Environment capability must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION",
+      }),
+
+    supportedFeatures: Joi.array().items(Joi.string()).optional().messages({
+      "array.base": "Supported features must be an array",
+      "string.base": "Each supported feature must be a string",
+    }),
+  }).optional(),
+
+  metrics: Joi.object({
+    cpuUsage: Joi.number().min(0).max(100).optional().messages({
+      "number.min": "CPU usage must be at least 0",
+      "number.max": "CPU usage must not exceed 100",
+    }),
+
+    memoryUsage: Joi.number().min(0).max(100).optional().messages({
+      "number.min": "Memory usage must be at least 0",
+      "number.max": "Memory usage must not exceed 100",
+    }),
+
+    uptime: Joi.number().integer().min(0).optional().messages({
+      "number.min": "Uptime must be a non-negative integer",
+      "number.integer": "Uptime must be an integer",
+    }),
+
+    messageCount: Joi.number().integer().min(0).optional().messages({
+      "number.min": "Message count must be a non-negative integer",
+      "number.integer": "Message count must be an integer",
+    }),
+
+    totalSessions: Joi.number().integer().min(0).optional().messages({
+      "number.min": "Total sessions must be a non-negative integer",
+      "number.integer": "Total sessions must be an integer",
+    }),
+
+    activeSessions: Joi.number().integer().min(0).optional().messages({
+      "number.min": "Active sessions must be a non-negative integer",
+      "number.integer": "Active sessions must be an integer",
+    }),
+  }).optional(),
+
+  lastActivity: Joi.date().iso().optional().messages({
+    "date.format": "Last activity must be a valid ISO 8601 timestamp",
+  }),
+});
+
+/**
+ * Joi schema for worker ID parameter
+ */
+const workerIdParamSchema = Joi.object({
+  workerId: Joi.string().min(3).max(50).required().messages({
+    "string.min": "Worker ID must be at least 3 characters long",
+    "string.max": "Worker ID must not exceed 50 characters",
+    "any.required": "Worker ID is required",
+  }),
+});
+
+/**
+ * Joi schema for updating worker configuration
+ */
+const updateWorkerSchema = Joi.object({
+  maxSessions: Joi.number().integer().min(1).max(1000).optional().messages({
+    "number.min": "Max sessions must be at least 1",
+    "number.max": "Max sessions must not exceed 1000",
+    "number.integer": "Max sessions must be an integer",
+  }),
+
+  description: Joi.string().max(255).optional().messages({
+    "string.max": "Description must not exceed 255 characters",
+  }),
+
+  version: Joi.string()
+    .pattern(/^\d+\.\d+\.\d+$/)
+    .optional()
+    .messages({
+      "string.pattern.base": "Version must be in format x.y.z (e.g., 1.0.0)",
+    }),
+
+  environment: Joi.string()
+    .valid("DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION")
+    .optional()
+    .messages({
+      "any.only":
+        "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION",
+    }),
+});
+
+/**
+ * Joi schema for test worker connectivity
+ */
+const testWorkerConnectivitySchema = Joi.object({
+  endpoint: Joi.string()
+    .uri({ scheme: ["http", "https"] })
+    .required()
+    .messages({
+      "string.uri": "Endpoint must be a valid HTTP/HTTPS URL",
+      "any.required": "Endpoint is required",
+    }),
+});
+
+/**
+ * Joi schema for worker filters (query parameters)
+ */
+const workerFiltersSchema = Joi.object({
+  status: Joi.string()
+    .valid("ONLINE", "OFFLINE", "MAINTENANCE")
+    .optional()
+    .messages({
+      "any.only": "Status must be one of: ONLINE, OFFLINE, MAINTENANCE",
+    }),
+
+  environment: Joi.string()
+    .valid("DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION")
+    .optional()
+    .messages({
+      "any.only":
+        "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION",
+    }),
+
+  page: Joi.number().integer().min(1).optional().messages({
+    "number.min": "Page must be a positive integer",
+    "number.integer": "Page must be an integer",
+  }),
+
+  limit: Joi.number().integer().min(1).max(100).optional().messages({
+    "number.min": "Limit must be at least 1",
+    "number.max": "Limit must not exceed 100",
+    "number.integer": "Limit must be an integer",
+  }),
+});
+
+/**
+ * Joi schema for worker session recovery status
+ */
+const sessionRecoveryStatusSchema = Joi.object({
+  recoveryResults: Joi.array()
+    .items(
+      Joi.object({
+        sessionId: Joi.string().required().messages({
+          "any.required": "Session ID is required for each recovery result",
+        }),
+
+        status: Joi.string()
+          .valid("SUCCESS", "FAILED", "SKIPPED")
+          .required()
+          .messages({
+            "any.only":
+              "Recovery status must be one of: SUCCESS, FAILED, SKIPPED",
+            "any.required": "Recovery status is required",
+          }),
+
+        error: Joi.string().optional().messages({
+          "string.base": "Error must be a string",
+        }),
+
+        recoveredAt: Joi.date().iso().optional().messages({
+          "date.format": "Recovered at must be a valid ISO 8601 date",
+        }),
+      })
+    )
+    .required()
+    .messages({
+      "array.base": "Recovery results must be an array",
+      "any.required": "Recovery results are required",
+    }),
+
+  totalSessions: Joi.number().integer().min(0).required().messages({
+    "number.min": "Total sessions must be a non-negative integer",
+    "number.integer": "Total sessions must be an integer",
+    "any.required": "Total sessions is required",
+  }),
+
+  successfulRecoveries: Joi.number().integer().min(0).required().messages({
+    "number.min": "Successful recoveries must be a non-negative integer",
+    "number.integer": "Successful recoveries must be an integer",
+    "any.required": "Successful recoveries is required",
+  }),
+
+  failedRecoveries: Joi.number().integer().min(0).required().messages({
+    "number.min": "Failed recoveries must be a non-negative integer",
+    "number.integer": "Failed recoveries must be an integer",
+    "any.required": "Failed recoveries is required",
+  }),
+});
+
+// Export validation middleware
+export const validateWorkerRegistration = createValidationMiddleware(
+  workerRegistrationSchema,
+  "body"
+);
 export const validateWorkerHeartbeat = [
-  param("workerId")
-    .notEmpty()
-    .withMessage("Worker ID is required")
-    .isLength({ min: 3, max: 50 })
-    .withMessage("Worker ID must be between 3 and 50 characters"),
-
-  // Enhanced session data validation (REQUIRED)
-  body("sessions")
-    .isArray()
-    .withMessage("Sessions array is required for enhanced heartbeat"),
-
-  body("sessions.*.sessionId")
-    .notEmpty()
-    .withMessage("Session ID is required for each session")
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Session ID must be between 1 and 100 characters"),
-
-  body("sessions.*.status")
-    .isIn([
-      "CONNECTED",
-      "DISCONNECTED",
-      "QR_REQUIRED",
-      "RECONNECTING",
-      "INIT",
-      "ERROR",
-    ])
-    .withMessage(
-      "Session status must be one of: CONNECTED, DISCONNECTED, QR_REQUIRED, RECONNECTING, INIT, ERROR"
-    ),
-
-  body("sessions.*.phoneNumber")
-    .optional()
-    .matches(/^\+?[1-9]\d{1,14}$/)
-    .withMessage("Phone number must be a valid international format"),
-
-  body("sessions.*.lastActivity")
-    .optional()
-    .isISO8601()
-    .withMessage("Last activity must be a valid ISO 8601 timestamp"),
-
-  // Worker capabilities validation
-  body("capabilities")
-    .optional()
-    .isObject()
-    .withMessage("Capabilities must be an object"),
-
-  body("capabilities.maxSessions")
-    .optional()
-    .isInt({ min: 1, max: 1000 })
-    .withMessage("Max sessions capability must be between 1 and 1000"),
-
-  body("capabilities.version")
-    .optional()
-    .matches(/^\d+\.\d+\.\d+$/)
-    .withMessage("Version capability must be in format x.y.z (e.g., 1.0.0)"),
-
-  body("capabilities.environment")
-    .optional()
-    .isIn(["DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION"])
-    .withMessage(
-      "Environment capability must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION"
-    ),
-
-  body("capabilities.supportedFeatures")
-    .optional()
-    .isArray()
-    .withMessage("Supported features must be an array"),
-
-  body("capabilities.supportedFeatures.*")
-    .optional()
-    .isString()
-    .withMessage("Each supported feature must be a string"),
-
-  // Enhanced metrics validation
-  body("metrics")
-    .optional()
-    .isObject()
-    .withMessage("Metrics must be an object"),
-
-  body("metrics.cpuUsage")
-    .optional()
-    .isFloat({ min: 0, max: 100 })
-    .withMessage("CPU usage must be between 0 and 100"),
-
-  body("metrics.memoryUsage")
-    .optional()
-    .isFloat({ min: 0, max: 100 })
-    .withMessage("Memory usage must be between 0 and 100"),
-
-  body("metrics.uptime")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Uptime must be a non-negative integer"),
-
-  body("metrics.messageCount")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Message count must be a non-negative integer"),
-
-  body("metrics.totalSessions")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Total sessions must be a non-negative integer"),
-
-  body("metrics.activeSessions")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Active sessions must be a non-negative integer"),
-
-  // Last activity timestamp validation
-  body("lastActivity")
-    .optional()
-    .isISO8601()
-    .withMessage("Last activity must be a valid ISO 8601 timestamp"),
+  createValidationMiddleware(workerIdParamSchema, "params"),
+  createValidationMiddleware(workerHeartbeatSchema, "body"),
 ];
-
-/**
- * Validation for adding worker manually (admin)
- */
-export const validateAddWorker = [
-  body("workerId")
-    .notEmpty()
-    .withMessage("Worker ID is required")
-    .isLength({ min: 3, max: 50 })
-    .withMessage("Worker ID must be between 3 and 50 characters")
-    .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage(
-      "Worker ID can only contain letters, numbers, hyphens, and underscores"
-    ),
-
-  body("endpoint")
-    .notEmpty()
-    .withMessage("Endpoint is required")
-    .isURL({ protocols: ["http", "https"], require_protocol: true })
-    .withMessage("Endpoint must be a valid HTTP/HTTPS URL"),
-
-  body("maxSessions")
-    .optional()
-    .isInt({ min: 1, max: 1000 })
-    .withMessage("Max sessions must be between 1 and 1000"),
-
-  body("description")
-    .optional()
-    .isLength({ max: 255 })
-    .withMessage("Description must not exceed 255 characters"),
-
-  body("version")
-    .optional()
-    .matches(/^\d+\.\d+\.\d+$/)
-    .withMessage("Version must be in format x.y.z (e.g., 1.0.0)"),
-
-  body("environment")
-    .optional()
-    .isIn(["DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION"])
-    .withMessage(
-      "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION"
-    ),
-];
-
-/**
- * Validation for updating worker configuration
- */
+export const validateAddWorker = createValidationMiddleware(
+  workerRegistrationSchema,
+  "body"
+);
 export const validateUpdateWorker = [
-  param("workerId")
-    .notEmpty()
-    .withMessage("Worker ID is required")
-    .isLength({ min: 3, max: 50 })
-    .withMessage("Worker ID must be between 3 and 50 characters"),
-
-  body("maxSessions")
-    .optional()
-    .isInt({ min: 1, max: 1000 })
-    .withMessage("Max sessions must be between 1 and 1000"),
-
-  body("description")
-    .optional()
-    .isLength({ max: 255 })
-    .withMessage("Description must not exceed 255 characters"),
-
-  body("version")
-    .optional()
-    .matches(/^\d+\.\d+\.\d+$/)
-    .withMessage("Version must be in format x.y.z (e.g., 1.0.0)"),
-
-  body("environment")
-    .optional()
-    .isIn(["DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION"])
-    .withMessage(
-      "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION"
-    ),
+  createValidationMiddleware(workerIdParamSchema, "params"),
+  createValidationMiddleware(updateWorkerSchema, "body"),
 ];
-
-/**
- * Validation for worker ID parameter
- */
-export const validateWorkerIdParam = [
-  param("workerId")
-    .notEmpty()
-    .withMessage("Worker ID is required")
-    .isLength({ min: 3, max: 50 })
-    .withMessage("Worker ID must be between 3 and 50 characters"),
-];
-
-/**
- * Validation for test worker connectivity
- */
-export const validateTestWorkerConnectivity = [
-  body("endpoint")
-    .notEmpty()
-    .withMessage("Endpoint is required")
-    .isURL({ protocols: ["http", "https"], require_protocol: true })
-    .withMessage("Endpoint must be a valid HTTP/HTTPS URL"),
-];
-
-/**
- * Validation for worker filters (query parameters)
- */
-export const validateWorkerFilters = [
-  query("status")
-    .optional()
-    .isIn(["ONLINE", "OFFLINE", "MAINTENANCE"])
-    .withMessage("Status must be one of: ONLINE, OFFLINE, MAINTENANCE"),
-
-  query("environment")
-    .optional()
-    .isIn(["DEVELOPMENT", "STAGING", "TESTING", "PRODUCTION"])
-    .withMessage(
-      "Environment must be one of: DEVELOPMENT, STAGING, TESTING, PRODUCTION"
-    ),
-
-  query("page")
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage("Page must be a positive integer"),
-
-  query("limit")
-    .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage("Limit must be between 1 and 100"),
-];
-
-/**
- * Validation for worker session recovery status
- */
+export const validateWorkerIdParam = createValidationMiddleware(
+  workerIdParamSchema,
+  "params"
+);
+export const validateTestWorkerConnectivity = createValidationMiddleware(
+  testWorkerConnectivitySchema,
+  "body"
+);
+export const validateWorkerFilters = createValidationMiddleware(
+  workerFiltersSchema,
+  "query"
+);
 export const validateSessionRecoveryStatus = [
-  param("workerId")
-    .notEmpty()
-    .withMessage("Worker ID is required")
-    .isLength({ min: 3, max: 50 })
-    .withMessage("Worker ID must be between 3 and 50 characters"),
-
-  body("recoveryResults")
-    .isArray()
-    .withMessage("Recovery results must be an array"),
-
-  body("recoveryResults.*.sessionId")
-    .notEmpty()
-    .withMessage("Session ID is required for each recovery result"),
-
-  body("recoveryResults.*.status")
-    .isIn(["SUCCESS", "FAILED", "SKIPPED"])
-    .withMessage("Recovery status must be one of: SUCCESS, FAILED, SKIPPED"),
-
-  body("recoveryResults.*.error")
-    .optional()
-    .isString()
-    .withMessage("Error must be a string"),
-
-  body("recoveryResults.*.recoveredAt")
-    .optional()
-    .isISO8601()
-    .withMessage("Recovered at must be a valid ISO 8601 date"),
-
-  body("totalSessions")
-    .isInt({ min: 0 })
-    .withMessage("Total sessions must be a non-negative integer"),
-
-  body("successfulRecoveries")
-    .isInt({ min: 0 })
-    .withMessage("Successful recoveries must be a non-negative integer"),
-
-  body("failedRecoveries")
-    .isInt({ min: 0 })
-    .withMessage("Failed recoveries must be a non-negative integer"),
+  createValidationMiddleware(workerIdParamSchema, "params"),
+  createValidationMiddleware(sessionRecoveryStatusSchema, "body"),
 ];

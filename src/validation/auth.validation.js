@@ -1,6 +1,7 @@
 // Authentication Validation - Joi schemas for auth operations
 import Joi from "joi";
 import { ValidationError } from "../middleware/error-handler.js";
+import { createValidationMiddleware } from "../utils/helpers.js";
 
 // User registration validation schema
 const registerSchema = Joi.object({
@@ -396,40 +397,17 @@ export const validatePassword = (password) => {
   return value;
 };
 
-/**
- * Create custom validation middleware for Express routes
- * @param {Joi.Schema} schema - Joi schema to validate against
- * @param {string} property - Request property to validate ('body', 'params', 'query')
- * @returns {Function} - Express middleware function
- */
-export const createValidationMiddleware = (schema, property = "body") => {
-  return (req, res, next) => {
-    const { error, value } = schema.validate(req[property], {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-
-    if (error) {
-      const errorMessages = error.details.map((detail) => detail.message);
-      return res.status(400).json({
-        success: false,
-        error: `Validation failed: ${errorMessages.join(", ")}`,
-        details: error.details,
-      });
-    }
-
-    // Replace the request property with validated and sanitized data
-    req[property] = value;
-    next();
-  };
-};
-
-// Export validation middleware for common use cases
+// Export validation middleware for all auth operations
 export const validateRegisterMiddleware =
   createValidationMiddleware(registerSchema);
 export const validateLoginMiddleware = createValidationMiddleware(loginSchema);
 export const validateChangePasswordMiddleware =
   createValidationMiddleware(changePasswordSchema);
+export const validateRefreshTokenMiddleware =
+  createValidationMiddleware(refreshTokenSchema);
+export const validateEmailMiddleware = createValidationMiddleware(emailSchema);
+export const validateResetPasswordMiddleware =
+  createValidationMiddleware(resetPasswordSchema);
 
 // Export schemas for direct use if needed
 export {
