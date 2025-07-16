@@ -337,50 +337,6 @@ export const validateResetPasswordInput = (data) => {
 };
 
 /**
- * Validate API key format
- * @param {string} apiKey - API key to validate
- * @returns {string} - Validated API key
- * @throws {ValidationError} - If validation fails
- */
-export const validateApiKey = (apiKey) => {
-  const { error, value } = apiKeySchema.validate(
-    { apiKey },
-    {
-      abortEarly: false,
-    }
-  );
-
-  if (error) {
-    const errorMessages = error.details.map((detail) => detail.message);
-    throw new ValidationError(`Validation failed: ${errorMessages.join(", ")}`);
-  }
-
-  return value.apiKey;
-};
-
-/**
- * Validate user ID format
- * @param {string} userId - User ID to validate
- * @returns {string} - Validated user ID
- * @throws {ValidationError} - If validation fails
- */
-export const validateUserId = (userId) => {
-  const { error, value } = userIdSchema.validate(
-    { userId },
-    {
-      abortEarly: false,
-    }
-  );
-
-  if (error) {
-    const errorMessages = error.details.map((detail) => detail.message);
-    throw new ValidationError(`Validation failed: ${errorMessages.join(", ")}`);
-  }
-
-  return value.userId;
-};
-
-/**
  * Validate email format only
  * @param {string} email - Email to validate
  * @returns {string} - Validated and normalized email

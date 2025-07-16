@@ -11,6 +11,9 @@ CREATE TYPE "SessionStatus" AS ENUM ('INIT', 'QR_REQUIRED', 'CONNECTED', 'DISCON
 CREATE TYPE "WorkerStatus" AS ENUM ('ONLINE', 'OFFLINE', 'MAINTENANCE');
 
 -- CreateEnum
+CREATE TYPE "WorkerEnvironment" AS ENUM ('DEVELOPMENT', 'STAGING', 'TESTING', 'PRODUCTION');
+
+-- CreateEnum
 CREATE TYPE "MessageDirection" AS ENUM ('INBOUND', 'OUTBOUND');
 
 -- CreateEnum
@@ -28,11 +31,11 @@ CREATE TYPE "LogLevel" AS ENUM ('ERROR', 'WARN', 'INFO', 'DEBUG');
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password_hash" TEXT NOT NULL,
     "role" "UserRole" NOT NULL DEFAULT 'USER',
     "tier" "UserTier" NOT NULL DEFAULT 'BASIC',
-    "api_key" TEXT NOT NULL,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "last_login_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -47,6 +50,7 @@ CREATE TABLE "sessions" (
     "user_id" TEXT NOT NULL,
     "worker_id" TEXT,
     "name" TEXT NOT NULL,
+    "display_name" TEXT,
     "phone_number" TEXT,
     "status" "SessionStatus" NOT NULL DEFAULT 'DISCONNECTED',
     "qr_code" TEXT,
@@ -66,6 +70,8 @@ CREATE TABLE "workers" (
     "max_sessions" INTEGER NOT NULL DEFAULT 50,
     "cpu_usage" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "memory_usage" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "version" TEXT NOT NULL DEFAULT '1.0.0',
+    "environment" "WorkerEnvironment" NOT NULL DEFAULT 'DEVELOPMENT',
     "last_heartbeat" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "description" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -189,7 +195,13 @@ CREATE TABLE "usage_records" (
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_api_key_key" ON "users"("api_key");
+CREATE INDEX "sessions_user_id_status_idx" ON "sessions"("user_id", "status");
+
+-- CreateIndex
+CREATE INDEX "sessions_worker_id_status_idx" ON "sessions"("worker_id", "status");
+
+-- CreateIndex
+CREATE INDEX "sessions_status_updated_at_idx" ON "sessions"("status", "updated_at");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "workers_endpoint_key" ON "workers"("endpoint");
@@ -199,6 +211,21 @@ CREATE UNIQUE INDEX "api_keys_key_key" ON "api_keys"("key");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "api_keys_session_id_key" ON "api_keys"("session_id");
+
+-- CreateIndex
+CREATE INDEX "messages_session_id_status_idx" ON "messages"("session_id", "status");
+
+-- CreateIndex
+CREATE INDEX "messages_status_created_at_idx" ON "messages"("status", "created_at");
+
+-- CreateIndex
+CREATE INDEX "messages_session_id_created_at_idx" ON "messages"("session_id", "created_at");
+
+-- CreateIndex
+CREATE INDEX "worker_metrics_worker_id_timestamp_idx" ON "worker_metrics"("worker_id", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "worker_metrics_timestamp_idx" ON "worker_metrics"("timestamp");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "webhooks_session_id_key" ON "webhooks"("session_id");

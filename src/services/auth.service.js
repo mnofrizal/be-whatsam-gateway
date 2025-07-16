@@ -1,16 +1,11 @@
 // Authentication Service - Core authentication business logic
 import prisma from "../database/client.js";
 import { jwtConfig } from "../config/security.js";
-import { UtilHelper } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import {
   UnauthorizedError,
   ConflictError,
 } from "../middleware/error-handler.js";
-import {
-  validateUserId,
-  validateApiKey,
-} from "../validation/auth.validation.js";
 import { USER_TIERS, USER_ROLES, SESSION_STATUS } from "../utils/constants.js";
 import { generateToken } from "../utils/helpers/jwt.js";
 import { hash, compare, validateAndHash } from "../utils/helpers/password.js";
@@ -153,11 +148,9 @@ export const login = async (email, password) => {
  */
 export const getCurrentUser = async (userId) => {
   try {
-    // Validate user ID format
-    const validatedUserId = validateUserId(userId);
-
+    // User ID validation is handled by route middleware
     const user = await prisma.user.findUnique({
-      where: { id: validatedUserId },
+      where: { id: userId },
       select: {
         id: true,
         name: true,
@@ -178,7 +171,7 @@ export const getCurrentUser = async (userId) => {
     // Get active sessions count separately
     const activeSessionsCount = await prisma.session.count({
       where: {
-        userId: validatedUserId,
+        userId: userId,
         status: {
           in: [
             SESSION_STATUS.CONNECTED,
@@ -200,71 +193,6 @@ export const getCurrentUser = async (userId) => {
 };
 
 /**
- * Verify API key
- * @param {string} apiKey - API key
- * @returns {object} - API key data with user and session
- */
-export const verifyApiKey = async (apiKey) => {
-  try {
-    // Validate API key format
-    const validatedApiKey = validateApiKey(apiKey);
-
-    const keyData = await prisma.apiKey.findUnique({
-      where: { key: validatedApiKey },
-      include: {
-        session: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                role: true,
-                tier: true,
-                isActive: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!keyData || !keyData.isActive) {
-      throw new UnauthorizedError("Invalid or inactive API key");
-    }
-
-    if (!keyData.session || !keyData.session.user) {
-      throw new UnauthorizedError(
-        "API key is not linked to a valid session or user"
-      );
-    }
-
-    if (!keyData.session.user.isActive) {
-      throw new UnauthorizedError("User account is deactivated");
-    }
-
-    // Check API key expiration
-    if (keyData.expiresAt && keyData.expiresAt < new Date()) {
-      throw new UnauthorizedError("API key has expired");
-    }
-
-    // Update last used timestamp (async, don't wait)
-    prisma.apiKey
-      .update({
-        where: { id: keyData.id },
-        data: { lastUsed: new Date() },
-      })
-      .catch((error) => {
-        logger.error("Failed to update API key last used:", error);
-      });
-
-    return keyData;
-  } catch (error) {
-    logger.error("API key verification failed:", error);
-    throw error;
-  }
-};
-
-/**
  * Change user password
  * @param {string} userId - User ID
  * @param {string} currentPassword - Current password
@@ -274,12 +202,9 @@ export const verifyApiKey = async (apiKey) => {
 export const changePassword = async (userId, currentPassword, newPassword) => {
   try {
     // Input validation is handled by route middleware
-    // User ID validation is still needed for internal calls
-    const validatedUserId = validateUserId(userId);
-
     // Get user with password hash
     const user = await prisma.user.findUnique({
-      where: { id: validatedUserId },
+      where: { id: userId },
       select: {
         id: true,
         email: true,
@@ -301,7 +226,7 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
 
     // Update password
     await prisma.user.update({
-      where: { id: validatedUserId },
+      where: { id: userId },
       data: { passwordHash: newPasswordHash },
     });
 
@@ -326,16 +251,14 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
  */
 export const deactivateAccount = async (userId) => {
   try {
-    // Validate user ID format
-    const validatedUserId = validateUserId(userId);
-
+    // User ID validation is handled by route middleware
     await prisma.user.update({
-      where: { id: validatedUserId },
+      where: { id: userId },
       data: { isActive: false },
     });
 
     logger.info("Account deactivated successfully", {
-      userId: validatedUserId,
+      userId: userId,
     });
 
     return {
@@ -352,7 +275,6 @@ export default {
   register,
   login,
   getCurrentUser,
-  verifyApiKey,
   changePassword,
   deactivateAccount,
 };

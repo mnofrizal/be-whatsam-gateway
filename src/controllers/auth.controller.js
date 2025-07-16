@@ -1,15 +1,11 @@
 // Authentication Controller - HTTP request handlers for authentication
 import { ApiResponse } from "../utils/helpers.js";
-import {
-  HTTP_STATUS,
-  ERROR_CODES,
-  USER_TIERS,
-  USER_ROLES,
-} from "../utils/constants.js";
+import { HTTP_STATUS } from "../utils/constants.js";
 import { asyncHandler } from "../middleware/error-handler.js";
 import authService from "../services/auth.service.js";
 import { refreshToken as refreshJWTToken } from "../utils/helpers/jwt.js";
 import logger from "../utils/logger.js";
+import bcrypt from "bcryptjs";
 
 /**
  * Register a new user
@@ -184,8 +180,16 @@ export const deactivateAccount = asyncHandler(async (req, res) => {
   const { password } = req.body;
   const userId = req.user.userId;
 
-  // Verify password before deactivation
-  await authService.login(req.user.email, password);
+  // Get user data to verify password
+  const user = await authService.getCurrentUser(userId);
+
+  // Verify password directly without full login flow
+  const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+  if (!isValidPassword) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json(ApiResponse.createErrorResponse("Invalid password"));
+  }
 
   const result = await authService.deactivateAccount(userId);
 
@@ -203,50 +207,6 @@ export const deactivateAccount = asyncHandler(async (req, res) => {
   );
 });
 
-/**
- * Forgot password (placeholder for future implementation)
- * POST /api/v1/auth/forgot-password
- */
-export const forgotPassword = asyncHandler(async (req, res) => {
-  // Validation is handled by middleware in routes
-  const { email } = req.body;
-
-  // TODO: Implement email-based password reset
-  // For now, return a placeholder response
-
-  logger.info("Password reset requested", {
-    email,
-    ip: req.ip,
-    userAgent: req.get("User-Agent"),
-  });
-
-  return res.status(HTTP_STATUS.OK).json(
-    ApiResponse.createSuccessResponse(null, {
-      message:
-        "If an account with this email exists, a password reset link has been sent.",
-    })
-  );
-});
-
-/**
- * Reset password (placeholder for future implementation)
- * POST /api/v1/auth/reset-password
- */
-export const resetPassword = asyncHandler(async (req, res) => {
-  // Validation is handled by middleware in routes
-  const { token, newPassword } = req.body;
-
-  // TODO: Implement token-based password reset
-  // For now, return a placeholder response
-
-  return res.status(HTTP_STATUS.OK).json(
-    ApiResponse.createSuccessResponse(null, {
-      message:
-        "Password reset functionality will be implemented in a future update.",
-    })
-  );
-});
-
 // Export default object with all controller functions
 export default {
   register,
@@ -256,6 +216,4 @@ export default {
   logout,
   changePassword,
   deactivateAccount,
-  forgotPassword,
-  resetPassword,
 };
