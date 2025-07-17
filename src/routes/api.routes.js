@@ -11,6 +11,7 @@ import {
   validateSendVoiceMiddleware,
   validateSendVideoMiddleware,
   validateSendLocationMiddleware,
+  validateSendContactVcardMiddleware,
   validateSendSeenMiddleware,
 } from "../validation/api.validation.js";
 
@@ -80,6 +81,16 @@ router.post(
   ApiController.sendLocation
 );
 
+// POST /api/v1/sendContactVcard - Send contact vcard message
+router.post(
+  "/sendContactVcard",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendContactVcardMiddleware,
+  ApiController.sendContactVcard
+);
+
 // POST /api/v1/sendSeen - Mark message as seen/read
 router.post(
   "/sendSeen",
@@ -95,14 +106,6 @@ router.get(
   authenticateApiKey,
   apiLimiter,
   ApiController.getSessionStatus
-);
-
-// GET /api/v1/session/qr - Get session QR code (sessionId from API key)
-router.get(
-  "/session/qr",
-  authenticateApiKey,
-  apiLimiter,
-  ApiController.getSessionQR
 );
 
 export default router;

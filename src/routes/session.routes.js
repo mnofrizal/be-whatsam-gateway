@@ -51,13 +51,6 @@ router.post(
   SessionController.connectSession
 );
 
-// GET /api/v1/sessions/:id/qr - Get Session QR Code
-router.get(
-  "/:id/qr",
-  validateSessionIdParamMiddleware,
-  SessionController.getQRCode
-);
-
 // GET /api/v1/sessions/:id/status - Get Session Status
 router.get(
   "/:id/status",

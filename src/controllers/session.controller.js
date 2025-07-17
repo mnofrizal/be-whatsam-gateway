@@ -224,37 +224,6 @@ export const getSessionById = asyncHandler(async (req, res) => {
 });
 
 /**
- * Get session QR code
- * GET /api/v1/sessions/:id/qr
- */
-export const getQRCode = asyncHandler(async (req, res) => {
-  const { id: sessionId } = req.params;
-  const userId = req.user.userId;
-
-  // Validation is handled by middleware
-  const qrData = await sessionService.getSessionQRCode(sessionId, userId);
-
-  if (!qrData) {
-    return res
-      .status(HTTP_STATUS.NOT_FOUND)
-      .json(
-        ApiResponse.createErrorResponse(
-          "Session not found or QR code not available",
-          ERROR_CODES.RESOURCE_NOT_FOUND
-        )
-      );
-  }
-
-  return res.status(HTTP_STATUS.OK).json(
-    ApiResponse.createSuccessResponse({
-      qrCode: qrData.qrCode,
-      status: qrData.status,
-      expiresAt: qrData.expiresAt,
-    })
-  );
-});
-
-/**
  * Get session status
  * GET /api/v1/sessions/:id/status
  */
@@ -541,7 +510,6 @@ export default {
   connectSession,
   getSessions,
   getSessionById,
-  getQRCode,
   getSessionStatus,
   deleteSession,
   sendMessage,

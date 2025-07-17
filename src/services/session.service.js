@@ -430,58 +430,6 @@ export class SessionService {
   }
 
   /**
-   * Get session QR code
-   * @param {string} sessionId - Session ID
-   * @param {string} userId - User ID (for authorization)
-   * @returns {Object} QR code data
-   */
-  async getSessionQRCode(sessionId, userId) {
-    try {
-      const session = await prisma.session.findFirst({
-        where: {
-          id: sessionId,
-          userId: userId,
-        },
-      });
-
-      if (!session) {
-        throw new NotFoundError("Session not found or access denied");
-      }
-
-      // Check if QR code exists
-      if (!session.qrCode) {
-        return {
-          sessionId: session.id,
-          status: session.status,
-          qrCode: null,
-          message: "QR code not available",
-        };
-      }
-
-      logger.info("Retrieved session QR code", {
-        sessionId,
-        userId,
-        hasQR: !!session.qrCode,
-        service: "SessionService",
-      });
-
-      return {
-        sessionId: session.id,
-        status: session.status,
-        qrCode: session.qrCode,
-      };
-    } catch (error) {
-      logger.error("Failed to get session QR code", {
-        sessionId,
-        userId,
-        error: error.message,
-        service: "SessionService",
-      });
-      throw error;
-    }
-  }
-
-  /**
    * Get session status with real-time updates
    * @param {string} sessionId - Session ID
    * @param {string} userId - User ID (for authorization)

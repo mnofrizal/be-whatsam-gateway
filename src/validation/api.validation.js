@@ -146,6 +146,37 @@ const sendSeenSchema = Joi.object({
   }),
 });
 
+// Send contact vcard validation schema
+const sendContactVcardSchema = Joi.object({
+  to: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Recipient is required",
+    "string.pattern.base":
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Recipient is required",
+  }),
+  contactName: Joi.string().min(1).max(255).required().messages({
+    "string.empty": "Contact name is required",
+    "string.min": "Contact name must be at least 1 character long",
+    "string.max": "Contact name must not exceed 255 characters",
+    "any.required": "Contact name is required",
+  }),
+  contactPhone: Joi.string()
+    .pattern(/^[0-9+\-\s()]+$/)
+    .required()
+    .messages({
+      "string.empty": "Contact phone is required",
+      "string.pattern.base": "Contact phone must be a valid phone number",
+      "any.required": "Contact phone is required",
+    }),
+  contactEmail: Joi.string().email().optional().messages({
+    "string.email": "Contact email must be a valid email address",
+  }),
+  contactOrganization: Joi.string().min(1).max(255).optional().messages({
+    "string.min": "Contact organization must be at least 1 character long",
+    "string.max": "Contact organization must not exceed 255 characters",
+  }),
+});
+
 // Export validation middleware for all API operations
 export const validateSendTextMiddleware =
   createValidationMiddleware(sendTextSchema);
@@ -159,6 +190,9 @@ export const validateSendVideoMiddleware =
   createValidationMiddleware(sendVideoSchema);
 export const validateSendLocationMiddleware =
   createValidationMiddleware(sendLocationSchema);
+export const validateSendContactVcardMiddleware = createValidationMiddleware(
+  sendContactVcardSchema
+);
 export const validateSendSeenMiddleware =
   createValidationMiddleware(sendSeenSchema);
 
@@ -170,5 +204,6 @@ export {
   sendVoiceSchema,
   sendVideoSchema,
   sendLocationSchema,
+  sendContactVcardSchema,
   sendSeenSchema,
 };

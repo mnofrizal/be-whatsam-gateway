@@ -29,7 +29,7 @@ export class ProxyService {
 
       const response = await this.makeRequest(
         "POST",
-        `${workerEndpoint}/api/session/start`,
+        `${workerEndpoint}/api/sessions/start`,
         sessionData
       );
 
@@ -68,7 +68,7 @@ export class ProxyService {
 
       const response = await this.makeRequest(
         "GET",
-        `${workerEndpoint}/api/session/${sessionId}/status`
+        `${workerEndpoint}/api/sessions/${sessionId}/status`
       );
 
       return response.data;
@@ -99,7 +99,7 @@ export class ProxyService {
 
       const response = await this.makeRequest(
         "DELETE",
-        `${workerEndpoint}/api/session/${sessionId}`
+        `${workerEndpoint}/api/sessions/${sessionId}`
       );
 
       logger.info("Session deleted on worker successfully", {
@@ -136,7 +136,7 @@ export class ProxyService {
 
       const response = await this.makeRequest(
         "POST",
-        `${workerEndpoint}/api/session/${sessionId}/disconnect`
+        `${workerEndpoint}/api/sessions/${sessionId}/disconnect`
       );
 
       logger.info("Session disconnected on worker successfully", {
@@ -173,7 +173,7 @@ export class ProxyService {
 
       const response = await this.makeRequest(
         "POST",
-        `${workerEndpoint}/api/session/${sessionId}/logout`
+        `${workerEndpoint}/api/sessions/${sessionId}/logout`
       );
 
       logger.info("Session logged out on worker successfully", {
@@ -212,7 +212,7 @@ export class ProxyService {
 
       const response = await this.makeRequest(
         "POST",
-        `${workerEndpoint}/api/session/${sessionId}/send`,
+        `${workerEndpoint}/api/sessions/${sessionId}/send`,
         messageData
       );
 
@@ -252,7 +252,7 @@ export class ProxyService {
       });
 
       const queryParams = new URLSearchParams(filters).toString();
-      const url = `${workerEndpoint}/api/session/${sessionId}/messages${
+      const url = `${workerEndpoint}/api/sessions/${sessionId}/messages${
         queryParams ? `?${queryParams}` : ""
       }`;
 
@@ -286,7 +286,7 @@ export class ProxyService {
 
       const response = await this.makeRequest(
         "POST",
-        `${workerEndpoint}/api/session/${sessionId}/restart`
+        `${workerEndpoint}/api/sessions/${sessionId}/restart`
       );
 
       logger.info("Session restarted on worker successfully", {

@@ -51,7 +51,7 @@ GET /health
 #### Create Session
 
 ```http
-POST /session/create
+POST /sessions/create
 Content-Type: application/json
 
 {
@@ -87,7 +87,7 @@ Content-Type: application/json
 #### Connect Session
 
 ```http
-POST /session/{sessionId}/connect
+POST /sessions/{sessionId}/connect
 Content-Type: application/json
 ```
 
@@ -116,7 +116,7 @@ Content-Type: application/json
 #### Get Session Status
 
 ```http
-GET /session/{sessionId}/status
+GET /sessions/{sessionId}/status
 ```
 
 **Response:**
@@ -136,7 +136,7 @@ GET /session/{sessionId}/status
 #### Delete Session
 
 ```http
-DELETE /session/{sessionId}
+DELETE /sessions/{sessionId}
 ```
 
 **Response:**
@@ -153,7 +153,7 @@ DELETE /session/{sessionId}
 #### Send Message
 
 ```http
-POST /session/{sessionId}/send
+POST /sessions/{sessionId}/send
 Content-Type: application/json
 
 {
@@ -179,7 +179,7 @@ Content-Type: application/json
 #### Get Messages
 
 ```http
-GET /session/{sessionId}/messages?limit=50&offset=0
+GET /sessions/{sessionId}/messages?limit=50&offset=0
 ```
 
 **Response:**

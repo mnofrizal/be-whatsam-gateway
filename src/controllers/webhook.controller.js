@@ -260,4 +260,12 @@ const handleWorkerHeartbeat = asyncHandler(async (req, res) => {
   }
 });
 
+// Export individual functions
 export { handleSessionStatus, handleMessageStatus, handleWorkerHeartbeat };
+
+// Export all functions as default object for route compatibility
+export default {
+  handleSessionStatus,
+  handleMessageStatus,
+  handleWorkerHeartbeat,
+};
