@@ -2,13 +2,13 @@
 // These endpoints use API key authentication and provide simple message sending
 import { asyncHandler } from "../middleware/error-handler.js";
 import { ApiResponse } from "../utils/helpers.js";
-import { HTTP_STATUS } from "../utils/constants.js";
-import SessionService from "../services/session.service.js";
+import { HTTP_STATUS, MESSAGE_TYPES } from "../utils/constants.js";
+import { sendMessage, manageMessage } from "../services/api.service.js";
 import prisma from "../database/client.js";
 
 /**
  * Send text message
- * POST /api/v1/sendText
+ * POST /api/sendText
  */
 export const sendText = asyncHandler(async (req, res) => {
   const { to, message } = req.body;
@@ -22,11 +22,11 @@ export const sendText = asyncHandler(async (req, res) => {
 
   const messageData = {
     to: formattedTo,
-    type: "text",
+    type: MESSAGE_TYPES.TEXT,
     message: message.trim(),
   };
 
-  const result = await SessionService.sendMessage(sessionId, messageData);
+  const result = await sendMessage(sessionId, messageData);
 
   return res.status(HTTP_STATUS.OK).json(
     ApiResponse.createSuccessResponse(result, {
@@ -37,7 +37,7 @@ export const sendText = asyncHandler(async (req, res) => {
 
 /**
  * Send image message
- * POST /api/v1/sendImage
+ * POST /api/sendImage
  */
 export const sendImage = asyncHandler(async (req, res) => {
   const { to, imageUrl, caption } = req.body;
@@ -51,12 +51,12 @@ export const sendImage = asyncHandler(async (req, res) => {
 
   const messageData = {
     to: formattedTo,
-    type: "image",
+    type: MESSAGE_TYPES.IMAGE,
     mediaUrl: imageUrl.trim(),
     caption: caption ? caption.trim() : undefined,
   };
 
-  const result = await SessionService.sendMessage(sessionId, messageData);
+  const result = await sendMessage(sessionId, messageData);
 
   return res.status(HTTP_STATUS.OK).json(
     ApiResponse.createSuccessResponse(result, {
@@ -67,7 +67,7 @@ export const sendImage = asyncHandler(async (req, res) => {
 
 /**
  * Send document/file message
- * POST /api/v1/sendFile
+ * POST /api/sendFile
  */
 export const sendFile = asyncHandler(async (req, res) => {
   const { to, fileUrl, filename, caption } = req.body;
@@ -81,13 +81,13 @@ export const sendFile = asyncHandler(async (req, res) => {
 
   const messageData = {
     to: formattedTo,
-    type: "document",
+    type: MESSAGE_TYPES.DOCUMENT,
     mediaUrl: fileUrl.trim(),
     filename: filename ? filename.trim() : undefined,
     caption: caption ? caption.trim() : undefined,
   };
 
-  const result = await SessionService.sendMessage(sessionId, messageData);
+  const result = await sendMessage(sessionId, messageData);
 
   return res.status(HTTP_STATUS.OK).json(
     ApiResponse.createSuccessResponse(result, {
@@ -98,7 +98,7 @@ export const sendFile = asyncHandler(async (req, res) => {
 
 /**
  * Send voice/audio message
- * POST /api/v1/sendVoice
+ * POST /api/sendVoice
  */
 export const sendVoice = asyncHandler(async (req, res) => {
   const { to, audioUrl } = req.body;
@@ -112,11 +112,11 @@ export const sendVoice = asyncHandler(async (req, res) => {
 
   const messageData = {
     to: formattedTo,
-    type: "audio",
+    type: MESSAGE_TYPES.AUDIO,
     mediaUrl: audioUrl.trim(),
   };
 
-  const result = await SessionService.sendMessage(sessionId, messageData);
+  const result = await sendMessage(sessionId, messageData);
 
   return res.status(HTTP_STATUS.OK).json(
     ApiResponse.createSuccessResponse(result, {
@@ -127,7 +127,7 @@ export const sendVoice = asyncHandler(async (req, res) => {
 
 /**
  * Send video message
- * POST /api/v1/sendVideo
+ * POST /api/sendVideo
  */
 export const sendVideo = asyncHandler(async (req, res) => {
   const { to, videoUrl, caption } = req.body;
@@ -141,12 +141,12 @@ export const sendVideo = asyncHandler(async (req, res) => {
 
   const messageData = {
     to: formattedTo,
-    type: "video",
+    type: MESSAGE_TYPES.VIDEO,
     mediaUrl: videoUrl.trim(),
     caption: caption ? caption.trim() : undefined,
   };
 
-  const result = await SessionService.sendMessage(sessionId, messageData);
+  const result = await sendMessage(sessionId, messageData);
 
   return res.status(HTTP_STATUS.OK).json(
     ApiResponse.createSuccessResponse(result, {
@@ -157,7 +157,7 @@ export const sendVideo = asyncHandler(async (req, res) => {
 
 /**
  * Send location message
- * POST /api/v1/sendLocation
+ * POST /api/sendLocation
  */
 export const sendLocation = asyncHandler(async (req, res) => {
   const { to, latitude, longitude, name, address } = req.body;
@@ -171,7 +171,7 @@ export const sendLocation = asyncHandler(async (req, res) => {
 
   const messageData = {
     to: formattedTo,
-    type: "location",
+    type: MESSAGE_TYPES.LOCATION,
     location: {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
@@ -180,7 +180,7 @@ export const sendLocation = asyncHandler(async (req, res) => {
     },
   };
 
-  const result = await SessionService.sendMessage(sessionId, messageData);
+  const result = await sendMessage(sessionId, messageData);
 
   return res.status(HTTP_STATUS.OK).json(
     ApiResponse.createSuccessResponse(result, {
@@ -191,7 +191,7 @@ export const sendLocation = asyncHandler(async (req, res) => {
 
 /**
  * Send contact vcard message
- * POST /api/v1/sendContactVcard
+ * POST /api/sendContactVcard
  */
 export const sendContactVcard = asyncHandler(async (req, res) => {
   const { to, contactName, contactPhone, contactEmail, contactOrganization } =
@@ -206,7 +206,7 @@ export const sendContactVcard = asyncHandler(async (req, res) => {
 
   const messageData = {
     to: formattedTo,
-    type: "contact",
+    type: MESSAGE_TYPES.CONTACT,
     contact: {
       name: contactName,
       phone: contactPhone,
@@ -215,7 +215,7 @@ export const sendContactVcard = asyncHandler(async (req, res) => {
     },
   };
 
-  const result = await SessionService.sendMessage(sessionId, messageData);
+  const result = await sendMessage(sessionId, messageData);
 
   return res.status(HTTP_STATUS.OK).json(
     ApiResponse.createSuccessResponse(result, {
@@ -226,21 +226,24 @@ export const sendContactVcard = asyncHandler(async (req, res) => {
 
 /**
  * Mark message as seen/read
- * POST /api/v1/sendSeen
+ * POST /api/sendSeen
  */
 export const sendSeen = asyncHandler(async (req, res) => {
-  const { messageId } = req.body;
+  const { to, messageId } = req.body;
   const apiKey = req.apiKey;
-  const sessionId = apiKey.sessionId; // Get sessionId from authenticated API key
+  const sessionId = apiKey.sessionId;
 
-  // For now, return success - this would be implemented in worker
-  const result = {
-    sessionId,
+  const formattedTo = to.trim().includes("@")
+    ? to.trim()
+    : `${to.trim()}@s.whatsapp.net`;
+
+  const messageData = {
+    to: formattedTo,
+    type: MESSAGE_TYPES.SEEN,
     messageId,
-    action: "mark_as_read",
-    status: "success",
-    timestamp: new Date().toISOString(),
   };
+
+  const result = await sendMessage(sessionId, messageData);
 
   return res.status(HTTP_STATUS.OK).json(
     ApiResponse.createSuccessResponse(result, {
@@ -250,8 +253,128 @@ export const sendSeen = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Start typing indicator
+ * POST /api/messages/{sessionId}/startTyping
+ */
+export const startTyping = asyncHandler(async (req, res) => {
+  const { to } = req.body;
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  const formattedTo = to.trim().includes("@")
+    ? to.trim()
+    : `${to.trim()}@s.whatsapp.net`;
+
+  const messageData = {
+    to: formattedTo,
+    type: MESSAGE_TYPES.TYPING_START,
+  };
+
+  const result = await sendMessage(sessionId, messageData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Typing indicator started",
+    })
+  );
+});
+
+/**
+ * Stop typing indicator
+ * POST /api/messages/{sessionId}/stopTyping
+ */
+export const stopTyping = asyncHandler(async (req, res) => {
+  const { to } = req.body;
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  const formattedTo = to.trim().includes("@")
+    ? to.trim()
+    : `${to.trim()}@s.whatsapp.net`;
+
+  const messageData = {
+    to: formattedTo,
+    type: MESSAGE_TYPES.TYPING_STOP,
+  };
+
+  const result = await sendMessage(sessionId, messageData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Typing indicator stopped",
+    })
+  );
+});
+
+/**
+ * Send link message
+ * POST /api/sendLink
+ * Supports two formats:
+ * 1. Automatic preview: { "to": "...", "url": "https://..." }
+ * 2. Custom preview: { "to": "...", "url": "https://...", "title": "...", "description": "...", "thumbnail": "..." }
+ */
+export const sendLink = asyncHandler(async (req, res) => {
+  const { to, url, title, description, thumbnail } = req.body;
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  const formattedTo = to.trim().includes("@")
+    ? to.trim()
+    : `${to.trim()}@s.whatsapp.net`;
+
+  const linkData = {
+    url: url.trim(),
+    title: title ? title.trim() : undefined,
+    description: description ? description.trim() : undefined,
+    thumbnail: thumbnail ? thumbnail.trim() : undefined,
+  };
+
+  const messageData = {
+    to: formattedTo,
+    type: MESSAGE_TYPES.LINK,
+    link: linkData,
+  };
+
+  const result = await sendMessage(sessionId, messageData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Link message sent successfully",
+    })
+  );
+});
+
+/**
+ * Send poll message
+ * POST /api/sendPoll
+ */
+export const sendPoll = asyncHandler(async (req, res) => {
+  const { to, poll } = req.body;
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  const formattedTo = to.trim().includes("@")
+    ? to.trim()
+    : `${to.trim()}@s.whatsapp.net`;
+
+  const messageData = {
+    to: formattedTo,
+    type: MESSAGE_TYPES.POLL,
+    poll,
+  };
+
+  const result = await sendMessage(sessionId, messageData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Poll message sent successfully",
+    })
+  );
+});
+
+/**
  * Get session status (API key version)
- * GET /api/v1/session/status
+ * GET /api/session/status
  */
 export const getSessionStatus = asyncHandler(async (req, res) => {
   const apiKey = req.apiKey;
@@ -284,6 +407,221 @@ export const getSessionStatus = asyncHandler(async (req, res) => {
   );
 });
 
+/**
+ * Delete message
+ * POST /api/message/{messageId}/delete
+ */
+export const deleteMessage = asyncHandler(async (req, res) => {
+  const { messageId } = req.params; // Get messageId from URL parameters
+  const { phone, forEveryone } = req.body; // Get phone and additional data from body
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  // Format phone number
+  const formattedPhone = phone.trim().includes("@")
+    ? phone.trim()
+    : `${phone.trim()}@s.whatsapp.net`;
+
+  const actionData = {
+    action: "delete",
+    messageId,
+    phone: formattedPhone,
+    forEveryone: forEveryone || false,
+  };
+
+  const result = await manageMessage(sessionId, actionData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Message deleted successfully",
+    })
+  );
+});
+
+/**
+ * Unsend message
+ * POST /api/message/{messageId}/unsend
+ */
+export const unsendMessage = asyncHandler(async (req, res) => {
+  const { messageId } = req.params; // Get messageId from URL parameters
+  const { phone } = req.body; // Get phone from body
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  // Format phone number
+  const formattedPhone = phone.trim().includes("@")
+    ? phone.trim()
+    : `${phone.trim()}@s.whatsapp.net`;
+
+  const actionData = {
+    action: "unsend",
+    messageId,
+    phone: formattedPhone,
+  };
+
+  const result = await manageMessage(sessionId, actionData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Message unsent successfully",
+    })
+  );
+});
+
+/**
+ * React to message
+ * POST /api/message/{messageId}/reaction
+ */
+export const reactToMessage = asyncHandler(async (req, res) => {
+  const { messageId } = req.params; // Get messageId from URL parameters
+  const { phone, emoji } = req.body; // Get phone and emoji from body
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  // Format phone number
+  const formattedPhone = phone.trim().includes("@")
+    ? phone.trim()
+    : `${phone.trim()}@s.whatsapp.net`;
+
+  const actionData = {
+    action: "reaction",
+    messageId,
+    phone: formattedPhone,
+    emoji,
+  };
+
+  const result = await manageMessage(sessionId, actionData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Message reaction sent successfully",
+    })
+  );
+});
+
+/**
+ * Edit message
+ * POST /api/message/{messageId}/edit
+ */
+export const editMessage = asyncHandler(async (req, res) => {
+  const { messageId } = req.params; // Get messageId from URL parameters
+  const { phone, newText } = req.body; // Get phone and newText from body
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  // Format phone number
+  const formattedPhone = phone.trim().includes("@")
+    ? phone.trim()
+    : `${phone.trim()}@s.whatsapp.net`;
+
+  const actionData = {
+    action: "edit",
+    messageId,
+    phone: formattedPhone,
+    newText,
+  };
+
+  const result = await manageMessage(sessionId, actionData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Message edited successfully",
+    })
+  );
+});
+
+/**
+ * Mark message as read
+ * POST /api/message/{messageId}/read
+ */
+export const markMessageAsRead = asyncHandler(async (req, res) => {
+  const { messageId } = req.params; // Get messageId from URL parameters
+  const { phone, jid, messageKey } = req.body; // Get phone and additional data from body
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  // Format phone number
+  const formattedPhone = phone.trim().includes("@")
+    ? phone.trim()
+    : `${phone.trim()}@s.whatsapp.net`;
+
+  const actionData = {
+    action: "read",
+    messageId, // Include messageId from URL params
+    phone: formattedPhone,
+    jid,
+    messageKey,
+  };
+
+  const result = await manageMessage(sessionId, actionData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Message marked as read successfully",
+    })
+  );
+});
+
+/**
+ * Star message
+ * POST /api/message/{messageId}/star
+ */
+export const starMessage = asyncHandler(async (req, res) => {
+  const { messageId } = req.params; // Get messageId from URL parameters
+  const { phone } = req.body; // Get phone from body
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  // Format phone number
+  const formattedPhone = phone.trim().includes("@")
+    ? phone.trim()
+    : `${phone.trim()}@s.whatsapp.net`;
+
+  const actionData = {
+    action: "star",
+    messageId,
+    phone: formattedPhone,
+  };
+
+  const result = await manageMessage(sessionId, actionData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Message starred successfully",
+    })
+  );
+});
+
+/**
+ * Unstar message
+ * POST /api/message/{messageId}/unstar
+ */
+export const unstarMessage = asyncHandler(async (req, res) => {
+  const { messageId } = req.params; // Get messageId from URL parameters
+  const { phone } = req.body; // Get phone from body
+  const apiKey = req.apiKey;
+  const sessionId = apiKey.sessionId;
+
+  // Format phone number
+  const formattedPhone = phone.trim().includes("@")
+    ? phone.trim()
+    : `${phone.trim()}@s.whatsapp.net`;
+
+  const actionData = {
+    action: "unstar",
+    messageId,
+    phone: formattedPhone,
+  };
+
+  const result = await manageMessage(sessionId, actionData);
+
+  return res.status(HTTP_STATUS.OK).json(
+    ApiResponse.createSuccessResponse(result, {
+      message: "Message unstarred successfully",
+    })
+  );
+});
+
 // Export default object with all controller functions
 export default {
   sendText,
@@ -294,5 +632,16 @@ export default {
   sendLocation,
   sendContactVcard,
   sendSeen,
+  startTyping,
+  stopTyping,
+  sendLink,
+  sendPoll,
   getSessionStatus,
+  deleteMessage,
+  unsendMessage,
+  reactToMessage,
+  editMessage,
+  markMessageAsRead,
+  starMessage,
+  unstarMessage,
 };

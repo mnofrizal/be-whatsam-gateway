@@ -1907,7 +1907,6 @@ class AnalyticsService {
 # Server Configuration
 PORT=8000
 NODE_ENV=development
-API_VERSION=v1
 
 # Database Configuration
 DATABASE_URL=postgresql://user:password@localhost:5432/whatsapp_gateway

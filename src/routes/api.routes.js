@@ -13,6 +13,17 @@ import {
   validateSendLocationMiddleware,
   validateSendContactVcardMiddleware,
   validateSendSeenMiddleware,
+  validateTypingIndicatorMiddleware,
+  validateSendLinkMiddleware,
+  validateSendPollMiddleware,
+  // New dual validation middleware (URL params + body)
+  validateMessageDeleteParamsAndBodyMiddleware,
+  validateMessageUnsendParamsAndBodyMiddleware,
+  validateMessageReactionParamsAndBodyMiddleware,
+  validateMessageEditParamsAndBodyMiddleware,
+  validateMessageReadParamsAndBodyMiddleware,
+  validateMessageStarParamsAndBodyMiddleware,
+  validateMessageUnstarParamsAndBodyMiddleware,
 } from "../validation/api.validation.js";
 
 const router = express.Router();
@@ -21,7 +32,7 @@ const router = express.Router();
 // OPERATIONAL MESSAGE APIs - For External Integration
 // ========================================
 
-// POST /api/v1/sendText - Send text message
+// POST /api/sendText - Send text message
 router.post(
   "/sendText",
   authenticateApiKey,
@@ -31,7 +42,7 @@ router.post(
   ApiController.sendText
 );
 
-// POST /api/v1/sendImage - Send image message
+// POST /api/sendImage - Send image message
 router.post(
   "/sendImage",
   authenticateApiKey,
@@ -41,7 +52,7 @@ router.post(
   ApiController.sendImage
 );
 
-// POST /api/v1/sendFile - Send document/file message
+// POST /api/sendFile - Send document/file message
 router.post(
   "/sendFile",
   authenticateApiKey,
@@ -51,7 +62,7 @@ router.post(
   ApiController.sendFile
 );
 
-// POST /api/v1/sendVoice - Send voice/audio message
+// POST /api/sendVoice - Send voice/audio message
 router.post(
   "/sendVoice",
   authenticateApiKey,
@@ -61,7 +72,7 @@ router.post(
   ApiController.sendVoice
 );
 
-// POST /api/v1/sendVideo - Send video message
+// POST /api/sendVideo - Send video message
 router.post(
   "/sendVideo",
   authenticateApiKey,
@@ -71,7 +82,7 @@ router.post(
   ApiController.sendVideo
 );
 
-// POST /api/v1/sendLocation - Send location message
+// POST /api/sendLocation - Send location message
 router.post(
   "/sendLocation",
   authenticateApiKey,
@@ -81,7 +92,7 @@ router.post(
   ApiController.sendLocation
 );
 
-// POST /api/v1/sendContactVcard - Send contact vcard message
+// POST /api/sendContactVcard - Send contact vcard message
 router.post(
   "/sendContactVcard",
   authenticateApiKey,
@@ -91,7 +102,7 @@ router.post(
   ApiController.sendContactVcard
 );
 
-// POST /api/v1/sendSeen - Mark message as seen/read
+// POST /api/sendSeen - Mark message as seen/read
 router.post(
   "/sendSeen",
   authenticateApiKey,
@@ -100,12 +111,117 @@ router.post(
   ApiController.sendSeen
 );
 
-// GET /api/v1/session/status - Get session status (sessionId from API key)
+// GET /api/session/status - Get session status (sessionId from API key)
 router.get(
   "/session/status",
   authenticateApiKey,
   apiLimiter,
   ApiController.getSessionStatus
+);
+
+// POST /api/startTyping - Start typing indicator
+router.post(
+  "/startTyping",
+  authenticateApiKey,
+  apiLimiter,
+  validateTypingIndicatorMiddleware,
+  ApiController.startTyping
+);
+
+// POST /api/stopTyping - Stop typing indicator
+router.post(
+  "/stopTyping",
+  authenticateApiKey,
+  apiLimiter,
+  validateTypingIndicatorMiddleware,
+  ApiController.stopTyping
+);
+
+// POST /api/sendLink - Send link message
+router.post(
+  "/sendLink",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendLinkMiddleware,
+  ApiController.sendLink
+);
+
+// POST /api/sendPoll - Send poll message
+router.post(
+  "/sendPoll",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendPollMiddleware,
+  ApiController.sendPoll
+);
+
+// ========================================
+// MESSAGE MANAGEMENT APIs - For External Integration
+// ========================================
+
+// POST /api/message/{messageId}/delete - Delete message
+router.post(
+  "/message/:messageId/delete",
+  authenticateApiKey,
+  apiLimiter,
+  ...validateMessageDeleteParamsAndBodyMiddleware,
+  ApiController.deleteMessage
+);
+
+// POST /api/message/{messageId}/unsend - Unsend message
+router.post(
+  "/message/:messageId/unsend",
+  authenticateApiKey,
+  apiLimiter,
+  ...validateMessageUnsendParamsAndBodyMiddleware,
+  ApiController.unsendMessage
+);
+
+// POST /api/message/{messageId}/reaction - React to message
+router.post(
+  "/message/:messageId/reaction",
+  authenticateApiKey,
+  apiLimiter,
+  ...validateMessageReactionParamsAndBodyMiddleware,
+  ApiController.reactToMessage
+);
+
+// POST /api/message/{messageId}/edit - Edit message
+router.post(
+  "/message/:messageId/edit",
+  authenticateApiKey,
+  apiLimiter,
+  ...validateMessageEditParamsAndBodyMiddleware,
+  ApiController.editMessage
+);
+
+// POST /api/message/{messageId}/read - Mark message as read
+router.post(
+  "/message/:messageId/read",
+  authenticateApiKey,
+  apiLimiter,
+  ...validateMessageReadParamsAndBodyMiddleware,
+  ApiController.markMessageAsRead
+);
+
+// POST /api/message/{messageId}/star - Star message
+router.post(
+  "/message/:messageId/star",
+  authenticateApiKey,
+  apiLimiter,
+  ...validateMessageStarParamsAndBodyMiddleware,
+  ApiController.starMessage
+);
+
+// POST /api/message/{messageId}/unstar - Unstar message
+router.post(
+  "/message/:messageId/unstar",
+  authenticateApiKey,
+  apiLimiter,
+  ...validateMessageUnstarParamsAndBodyMiddleware,
+  ApiController.unstarMessage
 );
 
 export default router;

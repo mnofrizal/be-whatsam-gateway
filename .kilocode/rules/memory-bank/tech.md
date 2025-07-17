@@ -151,7 +151,6 @@ npm run dev  # nodemon for auto-restart
 # Server Configuration
 PORT=8000
 NODE_ENV=development
-API_VERSION=v1
 
 # Database
 DATABASE_URL=postgresql://user:password@localhost:5432/whatsapp_gateway

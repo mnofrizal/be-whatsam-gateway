@@ -212,7 +212,7 @@ export class ProxyService {
 
       const response = await this.makeRequest(
         "POST",
-        `${workerEndpoint}/api/sessions/${sessionId}/send`,
+        `${workerEndpoint}/api/${sessionId}/send`,
         messageData
       );
 
@@ -236,37 +236,59 @@ export class ProxyService {
   }
 
   /**
-   * Get message history from worker
+   * Manage message via worker (delete, unsend, star, unstar, edit, reaction, read)
    * @param {string} workerEndpoint - Worker endpoint URL
    * @param {string} sessionId - Session ID
-   * @param {Object} filters - Message filters
-   * @returns {Object} Message history
+   * @param {Object} actionData - Action data containing action type and parameters
+   * @returns {Object} Management result
    */
-  async getMessageHistory(workerEndpoint, sessionId, filters = {}) {
+  async manageMessage(workerEndpoint, sessionId, actionData) {
     try {
-      logger.debug("Getting message history from worker", {
+      logger.info("Managing message via worker", {
         workerEndpoint,
         sessionId,
-        filters,
+        action: actionData.action,
+        messageId: actionData.messageId,
+        service: "ProxyService",
+        phone: actionData.phone,
+      });
+
+      // Debug logging for payload structure
+      logger.debug("Worker message management payload", {
+        workerEndpoint,
+        sessionId,
+        actionData,
+        fullUrl: `${workerEndpoint}/api/message/${sessionId}/manage`,
         service: "ProxyService",
       });
 
-      const queryParams = new URLSearchParams(filters).toString();
-      const url = `${workerEndpoint}/api/sessions/${sessionId}/messages${
-        queryParams ? `?${queryParams}` : ""
-      }`;
+      // Send full actionData payload to worker (including messageId in body)
+      const response = await this.makeRequest(
+        "POST",
+        `${workerEndpoint}/api/message/${sessionId}/manage`,
+        actionData
+      );
 
-      const response = await this.makeRequest("GET", url);
+      logger.info("Message managed via worker successfully", {
+        workerEndpoint,
+        sessionId,
+        action: actionData.action,
+        messageId: actionData.messageId,
+        service: "ProxyService",
+      });
 
       return response.data;
     } catch (error) {
-      logger.error("Failed to get message history from worker", {
+      logger.error("Failed to manage message via worker", {
         workerEndpoint,
         sessionId,
+        action: actionData.action,
+        messageId: actionData.messageId,
         error: error.message,
+        responseData: error.response?.data,
         service: "ProxyService",
       });
-      throw new Error(`Worker message history failed: ${error.message}`);
+      throw new Error(`Worker message management failed: ${error.message}`);
     }
   }
 

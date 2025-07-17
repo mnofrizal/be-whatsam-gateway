@@ -1,417 +1,336 @@
-### WhatsApp Gateway API - External Integration Endpoints
-### These endpoints are designed for third-party application integration
-### Authentication: Bearer Token (API Key)
-### Note: sessionId is automatically determined from your API key
+### WhatsApp Gateway PaaS - External API Endpoints
+### Base URL: http://localhost:8000/api
 
-### 🔧 IMPORTANT: Getting Your API Key
-### 1. Create a session using session.rest file
-### 2. Copy the apiKey from the session creation response
-### 3. API key format: wg_abc123def456ghi789jkl012mno345pqr (35 chars, wg_ prefix)
-### 4. Replace @apiKey variable below with your actual API key
+@baseUrl = http://localhost:8000/api
+@contentType = application/json
 
-@baseUrl = http://localhost:8000/api/v1
+### Variables (Update with your session-specific API Key)
 @apiKey = wg_dBmpRdwHJ2NlEGUaAb4h9h4V5djgO8o6
-@testPhone = 6287733760363
+@recipient = 6287733760363
 
-### ========================================
-### OPERATIONAL MESSAGE APIs
-### ========================================
-
-### 1. Send Text Message
+###
+# Send Text Message
 POST {{baseUrl}}/sendText
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "message": "Hello from WhatsApp Gateway API! 👋"
+  "to": "{{recipient}}",
+  "message": "Hello from the API! This is a test message."
 }
 
-### 2. Send Image Message
+###
+# Send Image Message
 POST {{baseUrl}}/sendImage
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "imageUrl": "https://picsum.photos/800/600",
-  "caption": "Beautiful random image from API 📸"
+  "to": "{{recipient}}",
+  "imageUrl": "https://imagizer.imageshack.com/v2/394x600q70/r/911/6skK16.jpg",
+  "caption": "This is a test image caption."
 }
 
-### 3. Send File/Document Message
+###
+# Send File/Document Message
 POST {{baseUrl}}/sendFile
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
+  "to": "{{recipient}}",
   "fileUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-  "filename": "sample-document.pdf",
-  "caption": "Sample PDF document from API 📄"
+  "filename": "dummy-document.pdf",
+  "caption": "Here is the document you requested."
 }
 
-### 4. Send Voice Message
+###
+# Send Voice/Audio Message
 POST {{baseUrl}}/sendVoice
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "audioUrl": "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav"
+  "to": "{{recipient}}",
+  "audioUrl": "https://www.myinstants.com/media/sounds/emotional-damage-meme.mp3"
 }
 
-### 5. Send Video Message
+###
+# Send Video Message
 POST {{baseUrl}}/sendVideo
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "videoUrl": "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4",
-  "caption": "Sample video from API 🎥"
+  "to": "{{recipient}}",
+  "videoUrl": "https://videos.pexels.com/video-files/3195394/3195394-uhd_2560_1440_25fps.mp4",
+  "caption": "Check out this video!"
 }
 
-### 6. Send Location Message
+###
+# Send Location Message
 POST {{baseUrl}}/sendLocation
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "latitude": -6.2088,
-  "longitude": 106.8456,
-  "name": "Jakarta, Indonesia",
-  "address": "Jakarta, Special Capital Region of Jakarta, Indonesia"
+  "to": "{{recipient}}",
+  "latitude": -6.2087634,
+  "longitude": 106.845599,
+  "name": "National Monument",
+  "address": "Gambir, Central Jakarta"
 }
 
-### 7. Mark Message as Seen
+###
+# Send Contact Vcard Message
+POST {{baseUrl}}/sendContactVcard
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{recipient}}",
+  "contactName": "John Doe",
+  "contactPhone": "+1234567890",
+  "contactEmail": "john.doe@example.com",
+  "contactOrganization": "Example Corp"
+}
+
+###
+# Mark Message as Seen/Read
+# Note: You need a valid message ID from a received message
+@messageIdToMarkAsSeen = "your-message-id-here"
 POST {{baseUrl}}/sendSeen
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "messageId": "message-id-from-webhook"
-}
-
-### ========================================
-### SESSION STATUS APIs
-### ========================================
-
-### 8. Get Session Status (sessionId from API key)
-GET {{baseUrl}}/session/status
-Authorization: Bearer {{apiKey}}
-
-### 9. Get Session QR Code (sessionId from API key)
-GET {{baseUrl}}/session/qr
-Authorization: Bearer {{apiKey}}
-
-### ========================================
-### ERROR TESTING - Validation Examples
-### ========================================
-
-### 10. Test Invalid Phone Number Format
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "invalid-phone",
-  "message": "This should fail validation"
-}
-
-### 11. Test Missing Required Fields
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}"
-  // Missing "message" field
-}
-
-### 12. Test Invalid URL for Image
-POST {{baseUrl}}/sendImage
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "imageUrl": "not-a-valid-url",
-  "caption": "This should fail validation"
-}
-
-### 13. Test Invalid Coordinates
-POST {{baseUrl}}/sendLocation
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "latitude": 999,
-  "longitude": 999,
-  "name": "Invalid Location"
-}
-
-### ========================================
-### AUTHENTICATION TESTING
-### ========================================
-
-### 14. Test Without API Key
-POST {{baseUrl}}/sendText
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "message": "This should fail authentication"
-}
-
-### 15. Test With Invalid API Key
-POST {{baseUrl}}/sendText
-Authorization: Bearer invalid-api-key
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "message": "This should fail authentication"
-}
-
-### ========================================
-### INTEGRATION EXAMPLES
-### ========================================
-
-### Example 1: Customer Service Bot
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "message": "Hello! Thank you for contacting our customer service. How can I help you today? 🤖"
-}
-
-### Example 2: Order Confirmation with Image
-POST {{baseUrl}}/sendImage
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "imageUrl": "https://picsum.photos/400/300",
-  "caption": "✅ Order #12345 confirmed! Your items will be delivered within 2-3 business days."
-}
-
-### Example 3: Invoice Document
-POST {{baseUrl}}/sendFile
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "fileUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-  "filename": "invoice-12345.pdf",
-  "caption": "📄 Your invoice is ready! Please find the attached PDF."
-}
-
-### Example 4: Store Location
-POST {{baseUrl}}/sendLocation
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "latitude": -6.2088,
-  "longitude": 106.8456,
-  "name": "Our Main Store",
-  "address": "Jl. Sudirman No. 123, Jakarta Pusat, DKI Jakarta 10220"
-}
-
-### ========================================
-### BULK OPERATIONS EXAMPLE
-### ========================================
-
-### Send Multiple Messages (Sequential)
-### Message 1
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "message": "Welcome to our service! 🎉"
-}
-
-### Message 2
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "message": "Here are some important updates for you:"
-}
-
-### Message 3
-POST {{baseUrl}}/sendImage
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "imageUrl": "https://picsum.photos/600/400",
-  "caption": "Check out our latest products! 🛍️"
-}
-
-### ========================================
-### PHONE NUMBER FORMAT TESTING
-### ========================================
-
-### Test Plain Phone Number (Should Work)
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "6287733760363",
-  "message": "Plain phone number format test"
-}
-
-### Test WhatsApp Format (Should Work)
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "6287733760363@s.whatsapp.net",
-  "message": "WhatsApp format test"
-}
-
-### Test Group Format (Should Work)
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "120363123456789@g.us",
-  "message": "Group message test"
-}
-
-### ========================================
-### SIMPLE INTEGRATION EXAMPLES
-### ========================================
-
-### Simplest Text Message (Only 2 fields required!)
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "6287733760363",
-  "message": "Hello World!"
-}
-
-### Simplest Image Message
-POST {{baseUrl}}/sendImage
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "6287733760363",
-  "imageUrl": "https://picsum.photos/400/300"
-}
-
-### Check Your Session Status
-GET {{baseUrl}}/session/status
-Authorization: Bearer {{apiKey}}
-
-### Get QR Code if Needed
-GET {{baseUrl}}/session/qr
-Authorization: Bearer {{apiKey}}
-
-### ========================================
-### RATE LIMITING TESTING
-### ========================================
-
-### Test Rate Limiting (Send multiple requests quickly)
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "message": "Rate limit test 1"
+  "to": "{{recipient}}",
+  "messageId": "{{messageIdToMarkAsSeen}}"
 }
 
 ###
-POST {{baseUrl}}/sendText
+# Start Typing Indicator
+POST {{baseUrl}}/startTyping
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "message": "Rate limit test 2"
+  "to": "{{recipient}}"
 }
 
 ###
-POST {{baseUrl}}/sendText
+# Stop Typing Indicator
+POST {{baseUrl}}/stopTyping
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "message": "Rate limit test 3"
+  "to": "{{recipient}}"
+}
+
+###
+# Send Link Message - Automatic Preview (Simple Format)
+# WhatsApp will automatically fetch title, description, and thumbnail
+POST {{baseUrl}}/sendLink
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{recipient}}",
+  "url": "https://github.com"
+}
+
+###
+# Send Link Message - Custom Preview (Direct Fields)
+# Specify custom title, description, and thumbnail
+POST {{baseUrl}}/sendLink
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{recipient}}",
+  "url": "https://google.com",
+  "title": "WhatsApp Gateway PaaS",
+  "description": "A robust, scalable, and multi-tenant WhatsApp Gateway Platform-as-a-Service.",
+  "thumbnail": "https://imagizer.imageshack.com/v2/394x600q70/r/911/6skK16.jpg"
+}
+
+###
+# Send Poll Message
+POST {{baseUrl}}/sendPoll
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "to": "{{recipient}}",
+  "poll": {
+    "question": "What is your favorite feature?",
+    "options": ["Scalability", "High Availability", "Developer-Friendly API", "Admin Dashboard"],
+    "multipleAnswers": true
+  }
+}
+
+###
+# Get Session Status (via API Key)
+GET {{baseUrl}}/session/status
+Authorization: Bearer {{apiKey}}
+
+### ========================================
+### MESSAGE MANAGEMENT ENDPOINTS
+### ========================================
+### Note: These endpoints require valid message IDs from actual sent/received messages
+### Update the variables below with real message IDs from your session
+
+@messageIdToManage = 3EB062FA4EB3E0F251B53E
+@targetJid = 6287733760363
+
+###
+# Delete Message (Delete for Everyone)
+POST {{baseUrl}}/message/{{messageIdToManage}}/delete
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "phone": "{{recipient}}",
+  "forEveryone": true
+}
+
+###
+# Delete Message (Delete for Me Only)
+POST {{baseUrl}}/message/{{messageIdToManage}}/delete
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "phone": "{{recipient}}",
+  "forEveryone": false
+}
+
+###
+# Unsend Message (Remove from chat)
+POST {{baseUrl}}/message/{{messageIdToManage}}/unsend
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "phone": "{{recipient}}"
+}
+
+###
+# React to Message with Emoji
+POST {{baseUrl}}/message/{{messageIdToManage}}/reaction
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "phone": "{{recipient}}",
+  "emoji": "👍"
+}
+
+###
+# Remove Reaction from Message
+POST {{baseUrl}}/message/{{messageIdToManage}}/reaction
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "phone": "{{recipient}}",
+  "emoji": ""
+}
+
+###
+# Edit Message Text
+POST {{baseUrl}}/message/{{messageIdToManage}}/edit
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "phone": "{{recipient}}",
+  "newText": "This message has been edited via API"
+}
+
+###
+# Mark Message as Read
+POST {{baseUrl}}/message/{{messageIdToManage}}/read
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "phone": "{{recipient}}",
+  "jid": "{{targetJid}}",
+  "messageKey": {
+    "remoteJid": "{{targetJid}}",
+    "fromMe": false,
+    "id": "{{messageIdToManage}}"
+  }
+}
+
+###
+# Star Message
+POST {{baseUrl}}/message/{{messageIdToManage}}/star
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "phone": "{{recipient}}"
+}
+
+###
+# Unstar Message
+POST {{baseUrl}}/message/{{messageIdToManage}}/unstar
+Content-Type: {{contentType}}
+Authorization: Bearer {{apiKey}}
+
+{
+  "phone": "{{recipient}}"
 }
 
 ### ========================================
-### REAL WORLD SCENARIOS
+### MESSAGE MANAGEMENT ERROR EXAMPLES
 ### ========================================
 
-### Scenario 1: E-commerce Order Update
-POST {{baseUrl}}/sendText
+###
+# Error Example: Invalid Message ID in URL
+POST {{baseUrl}}/message/invalid-message-id/delete
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "message": "🛒 Your order #ORD-12345 has been shipped! Track: https://tracking.example.com/12345"
+  "phone": "{{recipient}}",
+  "forEveryone": true
 }
 
-### Scenario 2: Appointment Reminder
-POST {{baseUrl}}/sendText
+###
+# Error Example: Invalid Emoji (too long)
+POST {{baseUrl}}/message/{{messageIdToManage}}/reaction
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "message": "📅 Reminder: You have an appointment tomorrow at 2:00 PM with Dr. Smith. Please arrive 15 minutes early."
+  "phone": "{{recipient}}",
+  "emoji": "👍👎❤️"
 }
 
-### Scenario 3: Payment Confirmation
-POST {{baseUrl}}/sendText
+###
+# Error Example: Missing New Text for Edit
+POST {{baseUrl}}/message/{{messageIdToManage}}/edit
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "message": "💳 Payment received! $150.00 for Invoice #INV-789. Thank you for your business!"
+  "phone": "{{recipient}}"
 }
 
-### Scenario 4: Welcome Message with Image
-POST {{baseUrl}}/sendImage
+###
+# Error Example: Invalid Message Key Structure
+POST {{baseUrl}}/message/{{messageIdToManage}}/read
+Content-Type: {{contentType}}
 Authorization: Bearer {{apiKey}}
-Content-Type: application/json
 
 {
-  "to": "{{testPhone}}",
-  "imageUrl": "https://picsum.photos/500/300",
-  "caption": "🎉 Welcome to our service! We're excited to have you on board. Here's what you can expect..."
-}
-
-### Scenario 5: Support Ticket Response
-POST {{baseUrl}}/sendText
-Authorization: Bearer {{apiKey}}
-Content-Type: application/json
-
-{
-  "to": "{{testPhone}}",
-  "message": "🎧 Support Update: Your ticket #SUP-456 has been resolved. The issue with your account has been fixed. Please try logging in again."
+  "phone": "{{recipient}}",
+  "jid": "{{targetJid}}",
+  "messageKey": {
+    "remoteJid": "{{targetJid}}"
+  }
 }

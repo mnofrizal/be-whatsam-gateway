@@ -138,6 +138,12 @@ const sendLocationSchema = Joi.object({
 
 // Send seen message validation schema
 const sendSeenSchema = Joi.object({
+  to: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Recipient is required",
+    "string.pattern.base":
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Recipient is required",
+  }),
   messageId: Joi.string().min(1).max(100).required().messages({
     "string.empty": "Message ID is required",
     "string.min": "Message ID must be at least 1 character long",
@@ -177,6 +183,255 @@ const sendContactVcardSchema = Joi.object({
   }),
 });
 
+// Typing indicators validation schema
+const typingIndicatorSchema = Joi.object({
+  to: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Recipient is required",
+    "string.pattern.base":
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Recipient is required",
+  }),
+});
+
+// Send link message validation schema
+const sendLinkSchema = Joi.object({
+  to: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Recipient is required",
+    "string.pattern.base":
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Recipient is required",
+  }),
+  url: Joi.string()
+    .uri({ scheme: ["http", "https"] })
+    .required()
+    .messages({
+      "string.empty": "URL is required",
+      "string.uri": "URL must be a valid HTTP/HTTPS URL",
+      "any.required": "URL is required",
+    }),
+  title: Joi.string().optional().messages({
+    "string.base": "Title must be a string",
+  }),
+  description: Joi.string().optional().messages({
+    "string.base": "Description must be a string",
+  }),
+  thumbnail: Joi.string()
+    .uri({ scheme: ["http", "https"] })
+    .optional()
+    .messages({
+      "string.uri": "Thumbnail must be a valid HTTP/HTTPS URL",
+    }),
+});
+
+// Send poll message validation schema
+const sendPollSchema = Joi.object({
+  to: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Recipient is required",
+    "string.pattern.base":
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Recipient is required",
+  }),
+  poll: Joi.object({
+    question: Joi.string().required(),
+    options: Joi.array().items(Joi.string()).min(2).required(),
+    multipleAnswers: Joi.boolean().default(false),
+  }).required(),
+});
+
+// Message management validation schemas
+
+// URL parameter validation schema for messageId
+const messageIdParamsSchema = Joi.object({
+  messageId: Joi.string().min(1).max(100).required().messages({
+    "string.empty": "Message ID is required",
+    "string.min": "Message ID must be at least 1 character long",
+    "string.max": "Message ID must not exceed 100 characters",
+    "any.required": "Message ID is required",
+  }),
+});
+
+// Body validation schemas (without messageId since it's in URL params)
+const messageDeleteBodySchema = Joi.object({
+  phone: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Phone number is required",
+    "string.pattern.base":
+      "Phone number must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Phone number is required",
+  }),
+  forEveryone: Joi.boolean().default(false).messages({
+    "boolean.base": "forEveryone must be a boolean value",
+  }),
+});
+
+const messageUnsendBodySchema = Joi.object({
+  phone: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Phone number is required",
+    "string.pattern.base":
+      "Phone number must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Phone number is required",
+  }),
+});
+
+const messageReactionBodySchema = Joi.object({
+  phone: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Phone number is required",
+    "string.pattern.base":
+      "Phone number must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Phone number is required",
+  }),
+  emoji: Joi.string().min(1).max(10).required().messages({
+    "string.empty": "Emoji is required",
+    "string.min": "Emoji must be at least 1 character long",
+    "string.max": "Emoji must not exceed 10 characters",
+    "any.required": "Emoji is required",
+  }),
+});
+
+const messageEditBodySchema = Joi.object({
+  phone: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Phone number is required",
+    "string.pattern.base":
+      "Phone number must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Phone number is required",
+  }),
+  newText: Joi.string().min(1).max(4096).required().messages({
+    "string.empty": "New text is required",
+    "string.min": "New text must be at least 1 character long",
+    "string.max": "New text must not exceed 4096 characters",
+    "any.required": "New text is required",
+  }),
+});
+
+const messageReadBodySchema = Joi.object({
+  phone: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Phone number is required",
+    "string.pattern.base":
+      "Phone number must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Phone number is required",
+  }),
+  jid: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "JID is required",
+    "string.pattern.base":
+      "JID must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "JID is required",
+  }),
+  messageKey: Joi.object({
+    remoteJid: Joi.string().required(),
+    fromMe: Joi.boolean().required(),
+    id: Joi.string().required(),
+  })
+    .required()
+    .messages({
+      "any.required": "Message key is required",
+    }),
+});
+
+const messageStarBodySchema = Joi.object({
+  phone: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Phone number is required",
+    "string.pattern.base":
+      "Phone number must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Phone number is required",
+  }),
+});
+
+const messageUnstarBodySchema = Joi.object({
+  phone: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Phone number is required",
+    "string.pattern.base":
+      "Phone number must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Phone number is required",
+  }),
+});
+
+// Combined schemas for backward compatibility (deprecated)
+const messageDeleteSchema = Joi.object({
+  messageId: Joi.string().min(1).max(100).required().messages({
+    "string.empty": "Message ID is required",
+    "string.min": "Message ID must be at least 1 character long",
+    "string.max": "Message ID must not exceed 100 characters",
+    "any.required": "Message ID is required",
+  }),
+  forEveryone: Joi.boolean().default(false).messages({
+    "boolean.base": "forEveryone must be a boolean value",
+  }),
+});
+
+const messageUnsendSchema = Joi.object({
+  messageId: Joi.string().min(1).max(100).required().messages({
+    "string.empty": "Message ID is required",
+    "string.min": "Message ID must be at least 1 character long",
+    "string.max": "Message ID must not exceed 100 characters",
+    "any.required": "Message ID is required",
+  }),
+});
+
+const messageReactionSchema = Joi.object({
+  messageId: Joi.string().min(1).max(100).required().messages({
+    "string.empty": "Message ID is required",
+    "string.min": "Message ID must be at least 1 character long",
+    "string.max": "Message ID must not exceed 100 characters",
+    "any.required": "Message ID is required",
+  }),
+  emoji: Joi.string().min(1).max(10).required().messages({
+    "string.empty": "Emoji is required",
+    "string.min": "Emoji must be at least 1 character long",
+    "string.max": "Emoji must not exceed 10 characters",
+    "any.required": "Emoji is required",
+  }),
+});
+
+const messageEditSchema = Joi.object({
+  messageId: Joi.string().min(1).max(100).required().messages({
+    "string.empty": "Message ID is required",
+    "string.min": "Message ID must be at least 1 character long",
+    "string.max": "Message ID must not exceed 100 characters",
+    "any.required": "Message ID is required",
+  }),
+  newText: Joi.string().min(1).max(4096).required().messages({
+    "string.empty": "New text is required",
+    "string.min": "New text must be at least 1 character long",
+    "string.max": "New text must not exceed 4096 characters",
+    "any.required": "New text is required",
+  }),
+});
+
+const messageReadSchema = Joi.object({
+  jid: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "JID is required",
+    "string.pattern.base":
+      "JID must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "JID is required",
+  }),
+  messageKey: Joi.object({
+    remoteJid: Joi.string().required(),
+    fromMe: Joi.boolean().required(),
+    id: Joi.string().required(),
+  })
+    .required()
+    .messages({
+      "any.required": "Message key is required",
+    }),
+});
+
+const messageStarSchema = Joi.object({
+  messageId: Joi.string().min(1).max(100).required().messages({
+    "string.empty": "Message ID is required",
+    "string.min": "Message ID must be at least 1 character long",
+    "string.max": "Message ID must not exceed 100 characters",
+    "any.required": "Message ID is required",
+  }),
+});
+
+const messageUnstarSchema = Joi.object({
+  messageId: Joi.string().min(1).max(100).required().messages({
+    "string.empty": "Message ID is required",
+    "string.min": "Message ID must be at least 1 character long",
+    "string.max": "Message ID must not exceed 100 characters",
+    "any.required": "Message ID is required",
+  }),
+});
+
 // Export validation middleware for all API operations
 export const validateSendTextMiddleware =
   createValidationMiddleware(sendTextSchema);
@@ -195,6 +450,60 @@ export const validateSendContactVcardMiddleware = createValidationMiddleware(
 );
 export const validateSendSeenMiddleware =
   createValidationMiddleware(sendSeenSchema);
+export const validateTypingIndicatorMiddleware = createValidationMiddleware(
+  typingIndicatorSchema
+);
+export const validateSendLinkMiddleware =
+  createValidationMiddleware(sendLinkSchema);
+export const validateSendPollMiddleware =
+  createValidationMiddleware(sendPollSchema);
+
+// Message management validation middleware (old format - deprecated)
+export const validateMessageDeleteMiddleware =
+  createValidationMiddleware(messageDeleteSchema);
+export const validateMessageUnsendMiddleware =
+  createValidationMiddleware(messageUnsendSchema);
+export const validateMessageReactionMiddleware = createValidationMiddleware(
+  messageReactionSchema
+);
+export const validateMessageEditMiddleware =
+  createValidationMiddleware(messageEditSchema);
+export const validateMessageReadMiddleware =
+  createValidationMiddleware(messageReadSchema);
+export const validateMessageStarMiddleware =
+  createValidationMiddleware(messageStarSchema);
+export const validateMessageUnstarMiddleware =
+  createValidationMiddleware(messageUnstarSchema);
+
+// New dual validation middleware (URL params + body)
+export const validateMessageDeleteParamsAndBodyMiddleware = [
+  createValidationMiddleware(messageIdParamsSchema, "params"),
+  createValidationMiddleware(messageDeleteBodySchema, "body"),
+];
+export const validateMessageUnsendParamsAndBodyMiddleware = [
+  createValidationMiddleware(messageIdParamsSchema, "params"),
+  createValidationMiddleware(messageUnsendBodySchema, "body"),
+];
+export const validateMessageReactionParamsAndBodyMiddleware = [
+  createValidationMiddleware(messageIdParamsSchema, "params"),
+  createValidationMiddleware(messageReactionBodySchema, "body"),
+];
+export const validateMessageEditParamsAndBodyMiddleware = [
+  createValidationMiddleware(messageIdParamsSchema, "params"),
+  createValidationMiddleware(messageEditBodySchema, "body"),
+];
+export const validateMessageReadParamsAndBodyMiddleware = [
+  createValidationMiddleware(messageIdParamsSchema, "params"),
+  createValidationMiddleware(messageReadBodySchema, "body"),
+];
+export const validateMessageStarParamsAndBodyMiddleware = [
+  createValidationMiddleware(messageIdParamsSchema, "params"),
+  createValidationMiddleware(messageStarBodySchema, "body"),
+];
+export const validateMessageUnstarParamsAndBodyMiddleware = [
+  createValidationMiddleware(messageIdParamsSchema, "params"),
+  createValidationMiddleware(messageUnstarBodySchema, "body"),
+];
 
 // Export schemas for direct use if needed
 export {
@@ -206,4 +515,24 @@ export {
   sendLocationSchema,
   sendContactVcardSchema,
   sendSeenSchema,
+  typingIndicatorSchema,
+  sendLinkSchema,
+  sendPollSchema,
+  // Old combined schemas (deprecated)
+  messageDeleteSchema,
+  messageUnsendSchema,
+  messageReactionSchema,
+  messageEditSchema,
+  messageReadSchema,
+  messageStarSchema,
+  messageUnstarSchema,
+  // New separated schemas
+  messageIdParamsSchema,
+  messageDeleteBodySchema,
+  messageUnsendBodySchema,
+  messageReactionBodySchema,
+  messageEditBodySchema,
+  messageReadBodySchema,
+  messageStarBodySchema,
+  messageUnstarBodySchema,
 };

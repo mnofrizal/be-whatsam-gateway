@@ -209,6 +209,11 @@ export const MESSAGE_TYPES = {
   STICKER: "sticker",
   LOCATION: "location",
   CONTACT: "contact",
+  SEEN: "seen",
+  TYPING_START: "typing_start",
+  TYPING_STOP: "typing_stop",
+  LINK: "link",
+  POLL: "poll",
 };
 
 export const SESSION_STATUS = {
@@ -266,7 +271,6 @@ export const LOG_LEVELS = {
 
 // Default values
 export const DEFAULTS = {
-  API_VERSION: "v1",
   PAGINATION_LIMIT: 20,
   SESSION_TIMEOUT: 30 * 60 * 1000, // 30 minutes
   QR_CODE_TIMEOUT: 2 * 60 * 1000, // 2 minutes

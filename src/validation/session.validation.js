@@ -75,112 +75,6 @@ const sessionFiltersSchema = Joi.object({
 });
 
 /**
- * Joi schema for sending messages (body validation)
- */
-const sendMessageSchema = Joi.object({
-  to: Joi.string()
-    .pattern(/^([0-9]+(@[a-z.]+)?|[0-9]+@[a-z.]+)$/)
-    .required()
-    .messages({
-      "string.empty": "Recipient is required",
-      "string.pattern.base":
-        "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
-      "any.required": "Recipient is required",
-    }),
-
-  type: Joi.string()
-    .valid(
-      "text",
-      "image",
-      "document",
-      "audio",
-      "video",
-      "sticker",
-      "location",
-      "contact"
-    )
-    .required()
-    .messages({
-      "string.empty": "Message type is required",
-      "any.only":
-        "Type must be one of: text, image, document, audio, video, sticker, location, contact",
-      "any.required": "Message type is required",
-    }),
-
-  message: Joi.when("type", {
-    is: "text",
-    then: Joi.string().min(1).max(4096).required().messages({
-      "string.empty": "Message content is required for text messages",
-      "string.min": "Message content must be between 1 and 4096 characters",
-      "string.max": "Message content must be between 1 and 4096 characters",
-      "any.required": "Message content is required for text messages",
-    }),
-    otherwise: Joi.optional(),
-  }),
-
-  media: Joi.when("type", {
-    is: Joi.valid("image", "document", "audio", "video", "sticker"),
-    then: Joi.string().base64().required().messages({
-      "string.empty": "Media is required for media messages",
-      "string.base64": "Media must be base64 encoded",
-      "any.required": "Media is required for media messages",
-    }),
-    otherwise: Joi.optional(),
-  }),
-
-  caption: Joi.string().max(1024).optional().messages({
-    "string.max": "Caption must not exceed 1024 characters",
-  }),
-
-  filename: Joi.when("type", {
-    is: "document",
-    then: Joi.string().min(1).max(255).required().messages({
-      "string.empty": "Filename is required for document messages",
-      "string.min": "Filename must be between 1 and 255 characters",
-      "string.max": "Filename must be between 1 and 255 characters",
-      "any.required": "Filename is required for document messages",
-    }),
-    otherwise: Joi.optional(),
-  }),
-});
-
-/**
- * Joi schema for message history query parameters
- */
-const messageHistorySchema = Joi.object({
-  limit: Joi.number().integer().min(1).max(100).optional().messages({
-    "number.min": "Limit must be between 1 and 100",
-    "number.max": "Limit must be between 1 and 100",
-    "number.integer": "Limit must be an integer",
-  }),
-
-  offset: Joi.number().integer().min(0).optional().messages({
-    "number.min": "Offset must be a non-negative integer",
-    "number.integer": "Offset must be an integer",
-  }),
-
-  direction: Joi.string().valid("INBOUND", "OUTBOUND").optional().messages({
-    "any.only": "Direction must be either INBOUND or OUTBOUND",
-  }),
-
-  status: Joi.string()
-    .valid("SENT", "DELIVERED", "READ", "FAILED", "PENDING")
-    .optional()
-    .messages({
-      "any.only":
-        "Status must be one of: SENT, DELIVERED, READ, FAILED, PENDING",
-    }),
-
-  from: Joi.date().iso().optional().messages({
-    "date.format": "From date must be in ISO 8601 format",
-  }),
-
-  to: Joi.date().iso().optional().messages({
-    "date.format": "To date must be in ISO 8601 format",
-  }),
-});
-
-/**
  * Joi schema for session connection
  */
 const sessionConnectionSchema = Joi.object({
@@ -256,14 +150,6 @@ export const validateSessionIdParamMiddleware = createValidationMiddleware(
 );
 export const validateSessionFiltersMiddleware = createValidationMiddleware(
   sessionFiltersSchema,
-  "query"
-);
-export const validateSendMessageMiddleware = createValidationMiddleware(
-  sendMessageSchema,
-  "body"
-);
-export const validateMessageHistoryMiddleware = createValidationMiddleware(
-  messageHistorySchema,
   "query"
 );
 export const validateSessionConnectionMiddleware = createValidationMiddleware(

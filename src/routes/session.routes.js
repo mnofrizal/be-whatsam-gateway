@@ -2,16 +2,11 @@
 import express from "express";
 import SessionController from "../controllers/session.controller.js";
 import { authenticateJWT } from "../middleware/auth.js";
-import {
-  sessionLimiter,
-  createMessageLimiter,
-} from "../middleware/rate-limit.js";
+import { sessionLimiter } from "../middleware/rate-limit.js";
 import {
   validateSessionCreationMiddleware,
   validateSessionIdParamMiddleware,
   validateSessionFiltersMiddleware,
-  validateSendMessageMiddleware,
-  validateMessageHistoryMiddleware,
   validateSessionConnectionMiddleware,
   validateSessionRestartMiddleware,
 } from "../validation/session.validation.js";
@@ -64,21 +59,6 @@ router.delete(
   sessionLimiter,
   validateSessionIdParamMiddleware,
   SessionController.deleteSession
-);
-
-// POST /api/v1/sessions/:id/send - Send Message
-router.post(
-  "/:id/send",
-  createMessageLimiter,
-  validateSendMessageMiddleware,
-  SessionController.sendMessage
-);
-
-// GET /api/v1/sessions/:id/messages - Get Message History (Week 5)
-router.get(
-  "/:id/messages",
-  validateMessageHistoryMiddleware,
-  SessionController.getMessages
 );
 
 // POST /api/v1/sessions/:id/restart - Restart Session
