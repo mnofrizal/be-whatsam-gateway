@@ -212,7 +212,7 @@ export class ProxyService {
 
       const response = await this.makeRequest(
         "POST",
-        `${workerEndpoint}/api/sessions/${sessionId}/send`,
+        `${workerEndpoint}/api/${sessionId}/send`,
         messageData
       );
 
@@ -232,6 +232,51 @@ export class ProxyService {
         service: "ProxyService",
       });
       throw new Error(`Worker message sending failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Manage message on worker (delete, unsend, edit, star, unstar, reaction, read)
+   * @param {string} workerEndpoint - Worker endpoint URL
+   * @param {string} sessionId - Session ID
+   * @param {Object} messageData - Message management data
+   * @returns {Object} Management result
+   */
+  async manageMessage(workerEndpoint, sessionId, messageData) {
+    try {
+      logger.info("Managing message via worker", {
+        workerEndpoint,
+        sessionId,
+        action: messageData.action,
+        messageId: messageData.messageId,
+        service: "ProxyService",
+      });
+
+      const response = await this.makeRequest(
+        "POST",
+        `${workerEndpoint}/api/messages/${sessionId}/manage`,
+        messageData
+      );
+
+      logger.info("Message managed via worker successfully", {
+        workerEndpoint,
+        sessionId,
+        action: messageData.action,
+        messageId: messageData.messageId,
+        service: "ProxyService",
+      });
+
+      return response.data;
+    } catch (error) {
+      logger.error("Failed to manage message via worker", {
+        workerEndpoint,
+        sessionId,
+        action: messageData.action,
+        messageId: messageData.messageId,
+        error: error.message,
+        service: "ProxyService",
+      });
+      throw new Error(`Worker message management failed: ${error.message}`);
     }
   }
 

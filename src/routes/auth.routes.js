@@ -14,7 +14,7 @@ import {
 
 const router = express.Router();
 
-// POST /api/v1/auth/register - User Registration
+// POST /api/auth/register - User Registration
 router.post(
   "/register",
   sessionLimiter,
@@ -22,7 +22,7 @@ router.post(
   AuthController.register
 );
 
-// POST /api/v1/auth/login - User Login
+// POST /api/auth/login - User Login
 router.post(
   "/login",
   sessionLimiter,
@@ -30,20 +30,20 @@ router.post(
   AuthController.login
 );
 
-// POST /api/v1/auth/logout - User Logout (requires authentication)
+// POST /api/auth/logout - User Logout (requires authentication)
 router.post("/logout", authenticateJWT, AuthController.logout);
 
-// POST /api/v1/auth/refresh - Refresh JWT Token
+// POST /api/auth/refresh - Refresh JWT Token
 router.post(
   "/refresh",
   validateRefreshTokenMiddleware,
   AuthController.refreshToken
 );
 
-// GET /api/v1/auth/me - Get Current User (requires authentication)
+// GET /api/auth/me - Get Current User (requires authentication)
 router.get("/me", authenticateJWT, AuthController.getCurrentUser);
 
-// POST /api/v1/auth/change-password - Change Password (requires authentication)
+// POST /api/auth/change-password - Change Password (requires authentication)
 router.post(
   "/change-password",
   authenticateJWT,
@@ -51,10 +51,10 @@ router.post(
   AuthController.changePassword
 );
 
-// POST /api/v1/auth/deactivate - Deactivate Account (requires authentication)
+// POST /api/auth/deactivate - Deactivate Account (requires authentication)
 router.post("/deactivate", authenticateJWT, AuthController.deactivateAccount);
 
-// POST /api/v1/auth/forgot-password - Password Reset Request
+// POST /api/auth/forgot-password - Password Reset Request
 router.post(
   "/forgot-password",
   sessionLimiter,
@@ -62,7 +62,7 @@ router.post(
   AuthController.forgotPassword
 );
 
-// POST /api/v1/auth/reset-password - Password Reset Confirmation
+// POST /api/auth/reset-password - Password Reset Confirmation
 router.post(
   "/reset-password",
   sessionLimiter,

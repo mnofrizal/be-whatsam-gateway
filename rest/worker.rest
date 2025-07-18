@@ -1,8 +1,8 @@
 ### Worker API Testing
-### Base URL: http://localhost:8000/api/v1
+### Base URL: http://localhost:8000/api
 
 ### Variables
-@baseUrl = http://localhost:8000/api/v1
+@baseUrl = http://localhost:8000/api
 @adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYTU5YzcxOS02YzcxLTQzOWYtYjIyMi1hYzAzNjYwNDhiMGIiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUyNDE5OTU5LCJleHAiOjE3NTMwMjQ3NTksImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.hEDvICmHw20uEoYPSrr9x6H6XeQJucrgxdkgFn9tSnE
 @workerToken = worker-secret-token-change-in-production
 
@@ -10,7 +10,6 @@
 ### ===========================================
 ### WORKER ID NORMALIZATION TESTS
 ### ===========================================
-@baseUrl = http://localhost:8000/api/v1
 ### Test 1: Worker Registration with Spaces in WorkerId
 POST {{baseUrl}}/workers/register
 Authorization: Bearer {{workerToken}}

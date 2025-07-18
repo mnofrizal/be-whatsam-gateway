@@ -13,6 +13,11 @@ import {
   validateSendLocationMiddleware,
   validateSendContactVcardMiddleware,
   validateSendSeenMiddleware,
+  validateSendLinkMiddleware,
+  validateSendPollMiddleware,
+  validateStartTypingMiddleware,
+  validateStopTypingMiddleware,
+  validateManageMessageMiddleware,
 } from "../validation/api.validation.js";
 
 const router = express.Router();
@@ -21,7 +26,7 @@ const router = express.Router();
 // OPERATIONAL MESSAGE APIs - For External Integration
 // ========================================
 
-// POST /api/v1/sendText - Send text message
+// POST /api/sendText - Send text message
 router.post(
   "/sendText",
   authenticateApiKey,
@@ -31,7 +36,7 @@ router.post(
   ApiController.sendText
 );
 
-// POST /api/v1/sendImage - Send image message
+// POST /api/sendImage - Send image message
 router.post(
   "/sendImage",
   authenticateApiKey,
@@ -41,7 +46,7 @@ router.post(
   ApiController.sendImage
 );
 
-// POST /api/v1/sendFile - Send document/file message
+// POST /api/sendFile - Send document/file message
 router.post(
   "/sendFile",
   authenticateApiKey,
@@ -51,7 +56,7 @@ router.post(
   ApiController.sendFile
 );
 
-// POST /api/v1/sendVoice - Send voice/audio message
+// POST /api/sendVoice - Send voice/audio message
 router.post(
   "/sendVoice",
   authenticateApiKey,
@@ -61,7 +66,7 @@ router.post(
   ApiController.sendVoice
 );
 
-// POST /api/v1/sendVideo - Send video message
+// POST /api/sendVideo - Send video message
 router.post(
   "/sendVideo",
   authenticateApiKey,
@@ -71,7 +76,7 @@ router.post(
   ApiController.sendVideo
 );
 
-// POST /api/v1/sendLocation - Send location message
+// POST /api/sendLocation - Send location message
 router.post(
   "/sendLocation",
   authenticateApiKey,
@@ -81,7 +86,7 @@ router.post(
   ApiController.sendLocation
 );
 
-// POST /api/v1/sendContactVcard - Send contact vcard message
+// POST /api/sendContactVcard - Send contact vcard message
 router.post(
   "/sendContactVcard",
   authenticateApiKey,
@@ -91,7 +96,7 @@ router.post(
   ApiController.sendContactVcard
 );
 
-// POST /api/v1/sendSeen - Mark message as seen/read
+// POST /api/sendSeen - Mark message as seen/read
 router.post(
   "/sendSeen",
   authenticateApiKey,
@@ -100,7 +105,54 @@ router.post(
   ApiController.sendSeen
 );
 
-// GET /api/v1/session/status - Get session status (sessionId from API key)
+// POST /api/sendLink - Send link message
+router.post(
+  "/sendLink",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendLinkMiddleware,
+  ApiController.sendLink
+);
+
+// POST /api/sendPoll - Send poll message
+router.post(
+  "/sendPoll",
+  authenticateApiKey,
+  apiLimiter,
+  createMessageLimiter,
+  validateSendPollMiddleware,
+  ApiController.sendPoll
+);
+
+// POST /api/startTyping - Start typing indicator
+router.post(
+  "/startTyping",
+  authenticateApiKey,
+  apiLimiter,
+  validateStartTypingMiddleware,
+  ApiController.startTyping
+);
+
+// POST /api/stopTyping - Stop typing indicator
+router.post(
+  "/stopTyping",
+  authenticateApiKey,
+  apiLimiter,
+  validateStopTypingMiddleware,
+  ApiController.stopTyping
+);
+
+// POST /api/message/:messageId/:action - Manage message (delete, unsend, edit, star, unstar, reaction, read)
+router.post(
+  "/message/:messageId/:action",
+  authenticateApiKey,
+  apiLimiter,
+  validateManageMessageMiddleware,
+  ApiController.manageMessage
+);
+
+// GET /api/session/status - Get session status (sessionId from API key)
 router.get(
   "/session/status",
   authenticateApiKey,

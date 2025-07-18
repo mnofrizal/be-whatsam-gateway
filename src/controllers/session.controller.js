@@ -29,7 +29,7 @@ const normalizeSessionId = (sessionId) => {
 
 /**
  * Create new session (Phase 1: Create session card)
- * POST /api/v1/sessions
+ * POST /api/sessions
  */
 export const createSession = asyncHandler(async (req, res) => {
   const { name, sessionId } = req.body;
@@ -83,7 +83,7 @@ export const createSession = asyncHandler(async (req, res) => {
 
 /**
  * Connect session (Phase 2: Start WhatsApp connection)
- * POST /api/v1/sessions/:id/connect
+ * POST /api/sessions/:id/connect
  */
 export const connectSession = asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
@@ -119,7 +119,7 @@ export const connectSession = asyncHandler(async (req, res) => {
 
 /**
  * Get user sessions
- * GET /api/v1/sessions
+ * GET /api/sessions
  */
 export const getSessions = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -174,7 +174,7 @@ export const getSessions = asyncHandler(async (req, res) => {
 
 /**
  * Get session details
- * GET /api/v1/sessions/:id
+ * GET /api/sessions/:id
  */
 export const getSessionById = asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
@@ -225,7 +225,7 @@ export const getSessionById = asyncHandler(async (req, res) => {
 
 /**
  * Get session status
- * GET /api/v1/sessions/:id/status
+ * GET /api/sessions/:id/status
  */
 export const getSessionStatus = asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
@@ -258,7 +258,7 @@ export const getSessionStatus = asyncHandler(async (req, res) => {
 
 /**
  * Delete session
- * DELETE /api/v1/sessions/:id
+ * DELETE /api/sessions/:id
  */
 export const deleteSession = asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
@@ -290,7 +290,7 @@ export const deleteSession = asyncHandler(async (req, res) => {
 
 /**
  * Send message through session
- * POST /api/v1/sessions/:id/send
+ * POST /api/sessions/:id/send
  */
 export const sendMessage = asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
@@ -391,7 +391,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
 /**
  * Get message history (placeholder for Week 5)
- * GET /api/v1/sessions/:id/messages
+ * GET /api/sessions/:id/messages
  */
 export const getMessages = asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
@@ -404,7 +404,7 @@ export const getMessages = asyncHandler(async (req, res) => {
       ERROR_CODES.NOT_IMPLEMENTED,
       "Get message history endpoint - Implementation coming in Week 5",
       {
-        endpoint: "GET /api/v1/sessions/:id/messages",
+        endpoint: "GET /api/sessions/:id/messages",
         sessionId,
         userId,
         queryParams: { limit, offset, direction, status, from, to },
@@ -416,7 +416,7 @@ export const getMessages = asyncHandler(async (req, res) => {
 
 /**
  * Restart session (stop and start again)
- * POST /api/v1/sessions/:id/restart
+ * POST /api/sessions/:id/restart
  */
 export const restartSession = asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
@@ -446,7 +446,7 @@ export const restartSession = asyncHandler(async (req, res) => {
 
 /**
  * Disconnect session (stop connection, keep data)
- * POST /api/v1/sessions/:id/disconnect
+ * POST /api/sessions/:id/disconnect
  */
 export const disconnectSession = asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
@@ -476,7 +476,7 @@ export const disconnectSession = asyncHandler(async (req, res) => {
 
 /**
  * Logout session (clear all session data)
- * POST /api/v1/sessions/:id/logout
+ * POST /api/sessions/:id/logout
  */
 export const logoutSession = asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;

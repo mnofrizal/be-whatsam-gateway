@@ -7,7 +7,7 @@ import { adminLimiter } from "../middleware/rate-limit.js";
 
 const router = express.Router();
 
-// GET /api/v1/admin/dashboard - Admin Dashboard Overview
+// GET /api/admin/dashboard - Admin Dashboard Overview
 router.get(
   "/dashboard",
   adminLimiter,
@@ -18,7 +18,7 @@ router.get(
         ERROR_CODES.NOT_IMPLEMENTED,
         "Admin dashboard endpoint - Implementation coming in Week 6",
         {
-          endpoint: "GET /api/v1/admin/dashboard",
+          endpoint: "GET /api/admin/dashboard",
           requiresAuth: "Admin JWT",
           expectedResponse: {
             overview: {
@@ -62,7 +62,7 @@ router.get(
   })
 );
 
-// GET /api/v1/admin/analytics - System Analytics
+// GET /api/admin/analytics - System Analytics
 router.get(
   "/analytics",
   adminLimiter,
@@ -73,7 +73,7 @@ router.get(
         ERROR_CODES.NOT_IMPLEMENTED,
         "System analytics endpoint - Implementation coming in Week 6",
         {
-          endpoint: "GET /api/v1/admin/analytics",
+          endpoint: "GET /api/admin/analytics",
           requiresAuth: "Admin JWT",
           queryParams: {
             period: "1h|24h|7d|30d", // optional, defaults to 24h
@@ -125,7 +125,7 @@ router.get(
   })
 );
 
-// GET /api/v1/admin/users - User Management
+// GET /api/admin/users - User Management
 router.get(
   "/users",
   adminLimiter,
@@ -136,7 +136,7 @@ router.get(
         ERROR_CODES.NOT_IMPLEMENTED,
         "User management endpoint - Implementation coming in Week 6",
         {
-          endpoint: "GET /api/v1/admin/users",
+          endpoint: "GET /api/admin/users",
           requiresAuth: "Admin JWT",
           queryParams: {
             page: 1, // optional, defaults to 1
@@ -173,7 +173,7 @@ router.get(
   })
 );
 
-// GET /api/v1/admin/users/:id - Get User Details
+// GET /api/admin/users/:id - Get User Details
 router.get(
   "/users/:id",
   adminLimiter,
@@ -184,7 +184,7 @@ router.get(
         ERROR_CODES.NOT_IMPLEMENTED,
         "Get user details endpoint - Implementation coming in Week 6",
         {
-          endpoint: "GET /api/v1/admin/users/:id",
+          endpoint: "GET /api/admin/users/:id",
           requiresAuth: "Admin JWT",
           params: {
             id: "User ID",
@@ -227,7 +227,7 @@ router.get(
   })
 );
 
-// PUT /api/v1/admin/users/:id - Update User
+// PUT /api/admin/users/:id - Update User
 router.put(
   "/users/:id",
   adminLimiter,
@@ -238,7 +238,7 @@ router.put(
         ERROR_CODES.NOT_IMPLEMENTED,
         "Update user endpoint - Implementation coming in Week 6",
         {
-          endpoint: "PUT /api/v1/admin/users/:id",
+          endpoint: "PUT /api/admin/users/:id",
           requiresAuth: "Admin JWT",
           params: {
             id: "User ID",
@@ -263,7 +263,7 @@ router.put(
   })
 );
 
-// DELETE /api/v1/admin/users/:id - Delete User
+// DELETE /api/admin/users/:id - Delete User
 router.delete(
   "/users/:id",
   adminLimiter,
@@ -274,7 +274,7 @@ router.delete(
         ERROR_CODES.NOT_IMPLEMENTED,
         "Delete user endpoint - Implementation coming in Week 6",
         {
-          endpoint: "DELETE /api/v1/admin/users/:id",
+          endpoint: "DELETE /api/admin/users/:id",
           requiresAuth: "Admin JWT",
           params: {
             id: "User ID",
@@ -294,7 +294,7 @@ router.delete(
   })
 );
 
-// GET /api/v1/admin/sessions - Session Management
+// GET /api/admin/sessions - Session Management
 router.get(
   "/sessions",
   adminLimiter,
@@ -305,7 +305,7 @@ router.get(
         ERROR_CODES.NOT_IMPLEMENTED,
         "Session management endpoint - Implementation coming in Week 6",
         {
-          endpoint: "GET /api/v1/admin/sessions",
+          endpoint: "GET /api/admin/sessions",
           requiresAuth: "Admin JWT",
           queryParams: {
             page: 1, // optional
@@ -343,7 +343,7 @@ router.get(
   })
 );
 
-// POST /api/v1/admin/sessions/:id/migrate - Migrate Session
+// POST /api/admin/sessions/:id/migrate - Migrate Session
 router.post(
   "/sessions/:id/migrate",
   adminLimiter,
@@ -354,7 +354,7 @@ router.post(
         ERROR_CODES.NOT_IMPLEMENTED,
         "Session migration endpoint - Implementation coming in Week 5",
         {
-          endpoint: "POST /api/v1/admin/sessions/:id/migrate",
+          endpoint: "POST /api/admin/sessions/:id/migrate",
           requiresAuth: "Admin JWT",
           params: {
             id: "Session ID",
@@ -381,7 +381,7 @@ router.post(
   })
 );
 
-// DELETE /api/v1/admin/sessions/:id - Force Delete Session
+// DELETE /api/admin/sessions/:id - Force Delete Session
 router.delete(
   "/sessions/:id",
   adminLimiter,
@@ -392,7 +392,7 @@ router.delete(
         ERROR_CODES.NOT_IMPLEMENTED,
         "Force delete session endpoint - Implementation coming in Week 6",
         {
-          endpoint: "DELETE /api/v1/admin/sessions/:id",
+          endpoint: "DELETE /api/admin/sessions/:id",
           requiresAuth: "Admin JWT",
           params: {
             id: "Session ID",
@@ -407,7 +407,7 @@ router.delete(
   })
 );
 
-// GET /api/v1/admin/system/health - System Health Check
+// GET /api/admin/system/health - System Health Check
 router.get(
   "/system/health",
   adminLimiter,
@@ -418,7 +418,7 @@ router.get(
         ERROR_CODES.NOT_IMPLEMENTED,
         "System health check endpoint - Implementation coming in Week 6",
         {
-          endpoint: "GET /api/v1/admin/system/health",
+          endpoint: "GET /api/admin/system/health",
           requiresAuth: "Admin JWT",
           expectedResponse: {
             status: "healthy",
@@ -455,7 +455,7 @@ router.get(
   })
 );
 
-// GET /api/v1/admin/system/logs - System Logs
+// GET /api/admin/system/logs - System Logs
 router.get(
   "/system/logs",
   adminLimiter,
@@ -466,7 +466,7 @@ router.get(
         ERROR_CODES.NOT_IMPLEMENTED,
         "System logs endpoint - Implementation coming in Week 6",
         {
-          endpoint: "GET /api/v1/admin/system/logs",
+          endpoint: "GET /api/admin/system/logs",
           requiresAuth: "Admin JWT",
           queryParams: {
             level: "error|warn|info|debug", // optional
@@ -501,7 +501,7 @@ router.get(
   })
 );
 
-// POST /api/v1/admin/system/maintenance - System Maintenance Mode
+// POST /api/admin/system/maintenance - System Maintenance Mode
 router.post(
   "/system/maintenance",
   adminLimiter,
@@ -512,7 +512,7 @@ router.post(
         ERROR_CODES.NOT_IMPLEMENTED,
         "System maintenance mode endpoint - Implementation coming in Week 6",
         {
-          endpoint: "POST /api/v1/admin/system/maintenance",
+          endpoint: "POST /api/admin/system/maintenance",
           requiresAuth: "Admin JWT",
           expectedBody: {
             enabled: true,
@@ -535,7 +535,7 @@ router.post(
   })
 );
 
-// GET /api/v1/admin/reports/export - Export Reports
+// GET /api/admin/reports/export - Export Reports
 router.get(
   "/reports/export",
   adminLimiter,
@@ -546,7 +546,7 @@ router.get(
         ERROR_CODES.NOT_IMPLEMENTED,
         "Export reports endpoint - Implementation coming in Week 6",
         {
-          endpoint: "GET /api/v1/admin/reports/export",
+          endpoint: "GET /api/admin/reports/export",
           requiresAuth: "Admin JWT",
           queryParams: {
             type: "users|sessions|messages|workers", // required

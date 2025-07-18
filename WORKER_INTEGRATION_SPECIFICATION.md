@@ -216,7 +216,7 @@ Response:
 The Worker must register itself with the Backend on startup:
 
 ```http
-POST {backend-url}/api/v1/admin/workers/register
+POST {backend-url}/api/admin/workers/register
 Authorization: Bearer {worker-token}
 Content-Type: application/json
 
@@ -235,7 +235,7 @@ Body:
 The Worker must send heartbeat every 30 seconds:
 
 ```http
-PUT {backend-url}/api/v1/admin/workers/{workerId}/heartbeat
+PUT {backend-url}/api/admin/workers/{workerId}/heartbeat
 Authorization: Bearer {worker-token}
 Content-Type: application/json
 
@@ -263,7 +263,7 @@ Body:
 #### Session Status Updates
 
 ```http
-POST {backend-url}/api/v1/webhooks/session-status
+POST {backend-url}/api/webhooks/session-status
 Authorization: Bearer {worker-token}
 Content-Type: application/json
 
@@ -282,7 +282,7 @@ Body:
 #### Message Status Updates
 
 ```http
-POST {backend-url}/api/v1/webhooks/message-status
+POST {backend-url}/api/webhooks/message-status
 Authorization: Bearer {worker-token}
 Content-Type: application/json
 
@@ -565,7 +565,7 @@ class BackendService {
   async registerWorker() {
     try {
       const response = await axios.post(
-        `${this.backendUrl}/api/v1/admin/workers/register`,
+        `${this.backendUrl}/api/admin/workers/register`,
         {
           workerId: this.workerId,
           endpoint: `http://localhost:${process.env.PORT}`,
@@ -591,7 +591,7 @@ class BackendService {
   async sendHeartbeat(metrics) {
     try {
       await axios.put(
-        `${this.backendUrl}/api/v1/admin/workers/${this.workerId}/heartbeat`,
+        `${this.backendUrl}/api/admin/workers/${this.workerId}/heartbeat`,
         {
           status: "online",
           metrics,
@@ -611,7 +611,7 @@ class BackendService {
   async reportSessionStatus(sessionId, statusData) {
     try {
       await axios.post(
-        `${this.backendUrl}/api/v1/webhooks/session-status`,
+        `${this.backendUrl}/api/webhooks/session-status`,
         {
           sessionId,
           ...statusData,
@@ -632,7 +632,7 @@ class BackendService {
   async reportMessageStatus(sessionId, messageId, status, error = null) {
     try {
       await axios.post(
-        `${this.backendUrl}/api/v1/webhooks/message-status`,
+        `${this.backendUrl}/api/webhooks/message-status`,
         {
           sessionId,
           messageId,

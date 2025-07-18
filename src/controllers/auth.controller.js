@@ -9,7 +9,7 @@ import bcrypt from "bcryptjs";
 
 /**
  * Register a new user
- * POST /api/v1/auth/register
+ * POST /api/auth/register
  */
 export const register = asyncHandler(async (req, res) => {
   // Validation is handled by middleware in routes
@@ -42,7 +42,7 @@ export const register = asyncHandler(async (req, res) => {
 
 /**
  * Login user
- * POST /api/v1/auth/login
+ * POST /api/auth/login
  */
 export const login = asyncHandler(async (req, res) => {
   // Validation is handled by middleware in routes
@@ -74,7 +74,7 @@ export const login = asyncHandler(async (req, res) => {
 
 /**
  * Get current user
- * GET /api/v1/auth/me
+ * GET /api/auth/me
  */
 export const getCurrentUser = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -90,7 +90,7 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
 
 /**
  * Refresh JWT token
- * POST /api/v1/auth/refresh
+ * POST /api/auth/refresh
  */
 export const refreshToken = asyncHandler(async (req, res) => {
   // Validation is handled by middleware in routes
@@ -121,7 +121,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
 
 /**
  * Logout user (client-side token invalidation)
- * POST /api/v1/auth/logout
+ * POST /api/auth/logout
  */
 export const logout = asyncHandler(async (req, res) => {
   // Since we're using stateless JWT, logout is handled client-side
@@ -144,7 +144,7 @@ export const logout = asyncHandler(async (req, res) => {
 
 /**
  * Change password
- * POST /api/v1/auth/change-password
+ * POST /api/auth/change-password
  */
 export const changePassword = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -174,7 +174,7 @@ export const changePassword = asyncHandler(async (req, res) => {
 
 /**
  * Deactivate user account
- * POST /api/v1/auth/deactivate
+ * POST /api/auth/deactivate
  */
 export const deactivateAccount = asyncHandler(async (req, res) => {
   const { password } = req.body;
@@ -209,7 +209,7 @@ export const deactivateAccount = asyncHandler(async (req, res) => {
 
 /**
  * Forgot password - Send password reset email
- * POST /api/v1/auth/forgot-password
+ * POST /api/auth/forgot-password
  */
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -231,7 +231,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
 /**
  * Reset password - Confirm password reset with token
- * POST /api/v1/auth/reset-password
+ * POST /api/auth/reset-password
  */
 export const resetPassword = asyncHandler(async (req, res) => {
   const { token, newPassword } = req.body;

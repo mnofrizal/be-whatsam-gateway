@@ -29,7 +29,7 @@ router.use(validateWebhookPayloadSize);
 router.use(validateWebhookCommon);
 
 /**
- * @route   POST /api/v1/webhooks/session-status
+ * @route   POST /api/webhooks/session-status
  * @desc    Handle session status updates from workers
  * @access  Worker (requires worker authentication)
  * @body    { sessionId, status, qrCode?, phoneNumber?, timestamp? }
@@ -45,7 +45,7 @@ router.post(
 );
 
 /**
- * @route   POST /api/v1/webhooks/message-status
+ * @route   POST /api/webhooks/message-status
  * @desc    Handle message status updates from workers
  * @access  Worker (requires worker authentication)
  * @body    { sessionId, messageId, status, timestamp?, deliveredAt?, readAt?, errorMessage? }
@@ -61,7 +61,7 @@ router.post(
 );
 
 /**
- * @route   POST /api/v1/webhooks/worker-heartbeat
+ * @route   POST /api/webhooks/worker-heartbeat
  * @desc    Handle worker heartbeat and metrics updates
  * @access  Worker (requires worker authentication)
  * @body    { workerId, status, sessionCount?, cpuUsage?, memoryUsage?, uptime?, activeConnections?, timestamp? }

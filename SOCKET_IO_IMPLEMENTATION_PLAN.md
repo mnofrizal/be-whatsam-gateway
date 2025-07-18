@@ -10,8 +10,8 @@ This document provides a comprehensive Socket.IO implementation plan for real-ti
 
 ```
 Frontend → Backend API (every 1-2 seconds)
-GET /api/v1/sessions/{id}/qr
-GET /api/v1/sessions/{id}/status
+GET /api/sessions/{id}/qr
+GET /api/sessions/{id}/status
 ```
 
 ### New Flow (Real-time WebSocket)

@@ -1,10 +1,10 @@
 ### Session Management API Testing
 ### WhatsApp Gateway PaaS Backend - Session Endpoints
-### Base URL: http://localhost:8000/api/v1
+### Base URL: http://localhost:8000/api
 
 @userEmail = admin@whatsapp-gateway.com
 @userPassword = AdminPassword123!
-@baseUrl = http://localhost:8000/api/v1
+@baseUrl = http://localhost:8000/api
 @jwtToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYTU5YzcxOS02YzcxLTQzOWYtYjIyMi1hYzAzNjYwNDhiMGIiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUyNDE5OTU5LCJleHAiOjE3NTMwMjQ3NTksImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.hEDvICmHw20uEoYPSrr9x6H6XeQJucrgxdkgFn9tSnE
 @sessionId = user123-personal
 @apiKey = sk_1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef

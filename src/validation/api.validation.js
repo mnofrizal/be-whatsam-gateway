@@ -177,6 +177,188 @@ const sendContactVcardSchema = Joi.object({
   }),
 });
 
+// Send link message validation schema
+const sendLinkSchema = Joi.object({
+  to: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Recipient is required",
+    "string.pattern.base":
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Recipient is required",
+  }),
+  url: Joi.string()
+    .uri({ scheme: ["http", "https"] })
+    .required()
+    .messages({
+      "string.empty": "URL is required",
+      "string.uri": "URL must be a valid HTTP/HTTPS URL",
+      "any.required": "URL is required",
+    }),
+  text: Joi.string().min(1).max(1024).optional().messages({
+    "string.min": "Link text must be at least 1 character long",
+    "string.max": "Link text must not exceed 1024 characters",
+  }),
+});
+
+// Send poll message validation schema
+const sendPollSchema = Joi.object({
+  to: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Recipient is required",
+    "string.pattern.base":
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Recipient is required",
+  }),
+  question: Joi.string().min(1).max(255).required().messages({
+    "string.empty": "Poll question is required",
+    "string.min": "Poll question must be at least 1 character long",
+    "string.max": "Poll question must not exceed 255 characters",
+    "any.required": "Poll question is required",
+  }),
+  options: Joi.array()
+    .items(Joi.string().min(1).max(100))
+    .min(2)
+    .max(12)
+    .required()
+    .messages({
+      "array.base": "Poll options must be an array",
+      "array.min": "Poll must have at least 2 options",
+      "array.max": "Poll can have maximum 12 options",
+      "any.required": "Poll options are required",
+    }),
+  maxAnswer: Joi.number().integer().min(1).max(12).optional().messages({
+    "number.base": "Max answer must be a number",
+    "number.integer": "Max answer must be an integer",
+    "number.min": "Max answer must be at least 1",
+    "number.max": "Max answer cannot exceed 12",
+  }),
+});
+
+// Start typing validation schema
+const startTypingSchema = Joi.object({
+  to: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Recipient is required",
+    "string.pattern.base":
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Recipient is required",
+  }),
+});
+
+// Stop typing validation schema
+const stopTypingSchema = Joi.object({
+  to: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Recipient is required",
+    "string.pattern.base":
+      "Recipient must be a phone number (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Recipient is required",
+  }),
+});
+
+// Message management URL parameters validation schema
+const manageMessageParamsSchema = Joi.object({
+  messageId: Joi.string().min(1).max(200).required().messages({
+    "string.empty": "Message ID is required",
+    "string.min": "Message ID must be at least 1 character long",
+    "string.max": "Message ID must not exceed 200 characters",
+    "any.required": "Message ID is required",
+  }),
+  action: Joi.string()
+    .valid(
+      "delete",
+      "unsend",
+      "edit",
+      "star",
+      "unstar",
+      "reaction",
+      "read",
+      "pin",
+      "unpin"
+    )
+    .required()
+    .messages({
+      "string.empty": "Action is required",
+      "any.only":
+        "Action must be one of: delete, unsend, edit, star, unstar, reaction, read, pin, unpin",
+      "any.required": "Action is required",
+    }),
+});
+
+// Message management request body validation schema
+const manageMessageBodySchema = Joi.object({
+  action: Joi.string()
+    .valid(
+      "delete",
+      "unsend",
+      "edit",
+      "star",
+      "unstar",
+      "reaction",
+      "read",
+      "pin",
+      "unpin"
+    )
+    .required()
+    .messages({
+      "string.empty": "Action is required",
+      "any.only":
+        "Action must be one of: delete, unsend, edit, star, unstar, reaction, read, pin, unpin",
+      "any.required": "Action is required",
+    }),
+  phone: Joi.string().pattern(phonePattern).required().messages({
+    "string.empty": "Phone number is required",
+    "string.pattern.base":
+      "Phone number must be a valid format (e.g., 6281234567890) or WhatsApp format (number@s.whatsapp.net)",
+    "any.required": "Phone number is required",
+  }),
+  // Optional fields based on action type
+  forEveryone: Joi.boolean().optional().messages({
+    "boolean.base": "forEveryone must be a boolean value",
+  }),
+  content: Joi.string().min(1).max(4096).optional().messages({
+    "string.min": "Content must be at least 1 character long",
+    "string.max": "Content must not exceed 4096 characters",
+  }),
+  emoji: Joi.string().min(1).max(10).optional().messages({
+    "string.min": "Emoji must be at least 1 character long",
+    "string.max": "Emoji must not exceed 10 characters",
+  }),
+})
+  .custom((value, helpers) => {
+    const { action, content, emoji, forEveryone } = value;
+
+    // Validate required fields based on action type
+    switch (action) {
+      case "edit":
+        if (!content) {
+          return helpers.error("custom.editContent");
+        }
+        break;
+      case "reaction":
+        if (!emoji) {
+          return helpers.error("custom.reactionEmoji");
+        }
+        break;
+      case "delete":
+        // forEveryone is optional for delete action
+        break;
+      case "unsend":
+      case "star":
+      case "unstar":
+      case "read":
+      case "pin":
+      case "unpin":
+        // These actions don't require additional fields
+        break;
+    }
+
+    return value;
+  })
+  .messages({
+    "custom.editContent": "Content is required for edit action",
+    "custom.reactionEmoji": "Emoji is required for reaction action",
+  });
+
+// Combined message management schema (for backward compatibility)
+const manageMessageSchema = manageMessageBodySchema;
+
 // Export validation middleware for all API operations
 export const validateSendTextMiddleware =
   createValidationMiddleware(sendTextSchema);
@@ -195,6 +377,56 @@ export const validateSendContactVcardMiddleware = createValidationMiddleware(
 );
 export const validateSendSeenMiddleware =
   createValidationMiddleware(sendSeenSchema);
+export const validateSendLinkMiddleware =
+  createValidationMiddleware(sendLinkSchema);
+export const validateSendPollMiddleware =
+  createValidationMiddleware(sendPollSchema);
+export const validateStartTypingMiddleware =
+  createValidationMiddleware(startTypingSchema);
+export const validateStopTypingMiddleware =
+  createValidationMiddleware(stopTypingSchema);
+// Custom validation middleware for message management that validates both params and body
+export const validateManageMessageMiddleware = (req, res, next) => {
+  // Validate URL parameters
+  const { error: paramsError } = manageMessageParamsSchema.validate(req.params);
+  if (paramsError) {
+    return res.status(400).json({
+      success: false,
+      timestamp: new Date().toISOString(),
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: {
+          errors: paramsError.details.map((detail) => ({
+            field: detail.path.join("."),
+            message: detail.message,
+          })),
+        },
+      },
+    });
+  }
+
+  // Validate request body
+  const { error: bodyError } = manageMessageBodySchema.validate(req.body);
+  if (bodyError) {
+    return res.status(400).json({
+      success: false,
+      timestamp: new Date().toISOString(),
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: {
+          errors: bodyError.details.map((detail) => ({
+            field: detail.path.join("."),
+            message: detail.message,
+          })),
+        },
+      },
+    });
+  }
+
+  next();
+};
 
 // Export schemas for direct use if needed
 export {
@@ -206,4 +438,11 @@ export {
   sendLocationSchema,
   sendContactVcardSchema,
   sendSeenSchema,
+  sendLinkSchema,
+  sendPollSchema,
+  startTypingSchema,
+  stopTypingSchema,
+  manageMessageSchema,
+  manageMessageParamsSchema,
+  manageMessageBodySchema,
 };

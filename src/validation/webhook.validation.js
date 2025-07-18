@@ -8,7 +8,7 @@ import { createValidationMiddleware } from "../utils/helpers.js";
 
 /**
  * Joi schema for session status webhook
- * POST /api/v1/webhooks/session-status
+ * POST /api/webhooks/session-status
  */
 const sessionStatusSchema = Joi.object({
   sessionId: Joi.string()
@@ -87,7 +87,7 @@ const sessionStatusSchema = Joi.object({
 
 /**
  * Joi schema for message status webhook
- * POST /api/v1/webhooks/message-status
+ * POST /api/webhooks/message-status
  */
 const messageStatusSchema = Joi.object({
   sessionId: Joi.string()
@@ -147,7 +147,7 @@ const messageStatusSchema = Joi.object({
 
 /**
  * Joi schema for worker heartbeat webhook
- * POST /api/v1/webhooks/worker-heartbeat
+ * POST /api/webhooks/worker-heartbeat
  */
 const workerHeartbeatSchema = Joi.object({
   workerId: Joi.string()

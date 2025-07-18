@@ -9,7 +9,7 @@ This document explains the complete message sending flow from API call to WhatsA
 ### 1. API Request (Frontend/External)
 
 ```http
-POST /api/v1/sessions/{sessionId}/send
+POST /api/sessions/{sessionId}/send
 Authorization: Bearer {apiKey}
 Content-Type: application/json
 
@@ -109,7 +109,7 @@ There are **two different endpoint patterns** in the codebase:
 
 **Change:** Modify session controller to use `ProxyService.sendMessage()` directly
 
-**Backend Endpoint:** `/api/v1/sessions/{sessionId}/send`
+**Backend Endpoint:** `/api/sessions/{sessionId}/send`
 **Worker Endpoint:** `/api/session/{sessionId}/send`
 
 ```javascript
@@ -132,7 +132,7 @@ const result = await ProxyService.sendMessage(
 
 **Change:** Keep current flow but ensure workers implement `/message/send`
 
-**Backend Endpoint:** `/api/v1/sessions/{sessionId}/send`
+**Backend Endpoint:** `/api/sessions/{sessionId}/send`
 **Worker Endpoint:** `/message/send`
 
 **Pros:**
@@ -174,7 +174,7 @@ GET /health
 ### 1. API Request
 
 ```http
-POST /api/v1/sessions/user123-personal/send
+POST /api/sessions/user123-personal/send
 Authorization: Bearer sk_test_abc123
 Content-Type: application/json
 
@@ -247,7 +247,7 @@ Content-Type: application/json
 
 ```http
 ### Send Text Message
-POST http://localhost:8000/api/v1/sessions/user123-personal/send
+POST http://localhost:8000/api/sessions/user123-personal/send
 Authorization: Bearer {{apiKey}}
 Content-Type: application/json
 
@@ -258,7 +258,7 @@ Content-Type: application/json
 }
 
 ### Send Image Message
-POST http://localhost:8000/api/v1/sessions/user123-personal/send
+POST http://localhost:8000/api/sessions/user123-personal/send
 Authorization: Bearer {{apiKey}}
 Content-Type: application/json
 

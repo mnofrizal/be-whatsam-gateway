@@ -10,7 +10,7 @@ import prisma from "../database/client.js";
 
 /**
  * Get user profile
- * GET /api/v1/users/profile
+ * GET /api/users/profile
  */
 const getUserProfile = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -26,7 +26,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
 
 /**
  * Update user profile
- * PUT /api/v1/users/profile
+ * PUT /api/users/profile
  */
 const updateUserProfile = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -55,7 +55,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
 /**
  * Get user's API keys
- * GET /api/v1/users/api-keys
+ * GET /api/users/api-keys
  */
 const getUserApiKeys = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -72,7 +72,7 @@ const getUserApiKeys = asyncHandler(async (req, res) => {
 
 /**
  * Delete API key
- * DELETE /api/v1/users/api-keys/:id
+ * DELETE /api/users/api-keys/:id
  */
 const deleteApiKey = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -106,7 +106,7 @@ const deleteApiKey = asyncHandler(async (req, res) => {
 
 /**
  * Get user usage statistics
- * GET /api/v1/users/usage
+ * GET /api/users/usage
  */
 const getUserUsage = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -124,7 +124,7 @@ const getUserUsage = asyncHandler(async (req, res) => {
 
 /**
  * Get user tier information
- * GET /api/v1/users/tier
+ * GET /api/users/tier
  */
 const getUserTier = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -140,7 +140,7 @@ const getUserTier = asyncHandler(async (req, res) => {
 
 /**
  * Deactivate user account
- * POST /api/v1/users/deactivate
+ * POST /api/users/deactivate
  */
 const deactivateAccount = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
@@ -169,7 +169,7 @@ const deactivateAccount = asyncHandler(async (req, res) => {
 
 /**
  * Get user sessions
- * GET /api/v1/users/sessions
+ * GET /api/users/sessions
  */
 const getUserSessions = asyncHandler(async (req, res) => {
   const userId = req.user.userId;

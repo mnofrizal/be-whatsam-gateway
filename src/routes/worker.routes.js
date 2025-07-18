@@ -17,7 +17,7 @@ import {
 const router = express.Router();
 
 // Worker Self-Registration (Internal - Worker to Backend)
-// POST /api/v1/workers/register - Worker registers itself with backend
+// POST /api/workers/register - Worker registers itself with backend
 router.post(
   "/register",
   authenticateWorker,
@@ -26,7 +26,7 @@ router.post(
 );
 
 // Worker Heartbeat (Internal - Worker to Backend)
-// PUT /api/v1/workers/:workerId/heartbeat - Worker sends health metrics
+// PUT /api/workers/:workerId/heartbeat - Worker sends health metrics
 router.put(
   "/:workerId/heartbeat",
   authenticateWorker,
@@ -36,7 +36,7 @@ router.put(
 );
 
 // Session Recovery Endpoints (Internal - Worker to Backend)
-// GET /api/v1/workers/:workerId/sessions/assigned - Worker requests assigned sessions for recovery
+// GET /api/workers/:workerId/sessions/assigned - Worker requests assigned sessions for recovery
 router.get(
   "/:workerId/sessions/assigned",
   authenticateWorker,
@@ -44,7 +44,7 @@ router.get(
   WorkerController.getAssignedSessions
 );
 
-// POST /api/v1/workers/:workerId/sessions/recovery-status - Worker reports recovery results
+// POST /api/workers/:workerId/sessions/recovery-status - Worker reports recovery results
 router.post(
   "/:workerId/sessions/recovery-status",
   authenticateWorker,
@@ -54,7 +54,7 @@ router.post(
 );
 
 // Worker Self-Unregistration (Internal - Worker to Backend)
-// DELETE /api/v1/workers/unregister - Worker unregisters itself from backend
+// DELETE /api/workers/unregister - Worker unregisters itself from backend
 router.delete(
   "/unregister",
   authenticateWorker,
@@ -63,7 +63,7 @@ router.delete(
 );
 
 // Admin Worker Management (Requires JWT Authentication)
-// GET /api/v1/workers - Get all workers (Admin only)
+// GET /api/workers - Get all workers (Admin only)
 router.get(
   "/",
   authenticateJWT,
@@ -71,7 +71,7 @@ router.get(
   WorkerController.getWorkers
 );
 
-// POST /api/v1/workers - Add new worker manually (Admin only)
+// POST /api/workers - Add new worker manually (Admin only)
 router.post(
   "/",
   authenticateJWT,
@@ -80,14 +80,14 @@ router.post(
   WorkerController.addWorker
 );
 
-// GET /api/v1/workers/statistics - Get worker statistics (Admin only)
+// GET /api/workers/statistics - Get worker statistics (Admin only)
 router.get(
   "/statistics",
   authenticateJWT,
   WorkerController.getWorkerStatistics
 );
 
-// POST /api/v1/workers/test - Test worker connectivity (Admin only)
+// POST /api/workers/test - Test worker connectivity (Admin only)
 router.post(
   "/test",
   authenticateJWT,
@@ -95,17 +95,17 @@ router.post(
   WorkerController.testWorkerConnectivity
 );
 
-// POST /api/v1/workers/health-check - Trigger manual health check (Admin only)
+// POST /api/workers/health-check - Trigger manual health check (Admin only)
 router.post(
   "/health-check",
   authenticateJWT,
   WorkerController.triggerHealthCheck
 );
 
-// GET /api/v1/workers/available - Get available worker (Internal use)
+// GET /api/workers/available - Get available worker (Internal use)
 router.get("/available", authenticateJWT, WorkerController.getAvailableWorker);
 
-// GET /api/v1/workers/:workerId - Get specific worker details (Admin only)
+// GET /api/workers/:workerId - Get specific worker details (Admin only)
 router.get(
   "/:workerId",
   authenticateJWT,
@@ -113,7 +113,7 @@ router.get(
   WorkerController.getWorkerById
 );
 
-// PUT /api/v1/workers/:workerId - Update worker configuration (Admin only)
+// PUT /api/workers/:workerId - Update worker configuration (Admin only)
 router.put(
   "/:workerId",
   authenticateJWT,
@@ -123,7 +123,7 @@ router.put(
   WorkerController.updateWorker
 );
 
-// DELETE /api/v1/workers/:workerId - Remove worker (Admin only)
+// DELETE /api/workers/:workerId - Remove worker (Admin only)
 router.delete(
   "/:workerId",
   authenticateJWT,
@@ -131,7 +131,7 @@ router.delete(
   WorkerController.removeWorker
 );
 
-// POST /api/v1/workers/:workerId/test - Test specific worker connectivity (Admin only)
+// POST /api/workers/:workerId/test - Test specific worker connectivity (Admin only)
 router.post(
   "/:workerId/test",
   authenticateJWT,
@@ -140,21 +140,21 @@ router.post(
 );
 
 // Health Monitoring Management (Admin only)
-// POST /api/v1/workers/health/start - Start health monitoring
+// POST /api/workers/health/start - Start health monitoring
 router.post(
   "/health/start",
   authenticateJWT,
   WorkerController.startHealthMonitoring
 );
 
-// POST /api/v1/workers/health/stop - Stop health monitoring
+// POST /api/workers/health/stop - Stop health monitoring
 router.post(
   "/health/stop",
   authenticateJWT,
   WorkerController.stopHealthMonitoring
 );
 
-// GET /api/v1/workers/health/status - Get health monitoring status
+// GET /api/workers/health/status - Get health monitoring status
 router.get(
   "/health/status",
   authenticateJWT,

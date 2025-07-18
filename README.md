@@ -106,23 +106,23 @@ The API will be available at `http://localhost:8000`
 ### Health Check
 
 ```bash
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/health
 ```
 
 ### API Endpoints
 
-- **Authentication**: `/api/v1/auth/*`
-- **User Management**: `/api/v1/users/*`
-- **Session Management**: `/api/v1/sessions/*`
-- **Worker Management**: `/api/v1/workers/*` (Admin only)
-- **Admin APIs**: `/api/v1/admin/*` (Admin only)
-- **External APIs**: `/api/v1/external/*` (API Key required)
+- **Authentication**: `/api/auth/*`
+- **User Management**: `/api/users/*`
+- **Session Management**: `/api/sessions/*`
+- **Worker Management**: `/api/workers/*` (Admin only)
+- **Admin APIs**: `/api/admin/*` (Admin only)
+- **External APIs**: `/api/external/*` (API Key required)
 
 ### Interactive Documentation
 
 When running in development mode, visit:
 
-- API Documentation: `http://localhost:8000/api/v1/docs`
+- API Documentation: `http://localhost:8000/api/docs`
 
 ## 🗄️ Database Management
 
@@ -188,13 +188,13 @@ HGETALL workers
 
 ```bash
 # Login
-curl -X POST http://localhost:8000/api/v1/auth/login \
+curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"user@example.com","password":"password"}'
 
 # Use JWT token
 curl -H "Authorization: Bearer <jwt-token>" \
-  http://localhost:8000/api/v1/users/profile
+  http://localhost:8000/api/users/profile
 ```
 
 ### API Key Authentication (External)
@@ -202,7 +202,7 @@ curl -H "Authorization: Bearer <jwt-token>" \
 ```bash
 # Use API key
 curl -H "X-API-Key: <api-key>" \
-  http://localhost:8000/api/v1/external/send \
+  http://localhost:8000/api/external/send \
   -d '{"sessionId":"session-id","to":"1234567890","message":"Hello"}'
 ```
 
@@ -298,11 +298,11 @@ docker-compose logs -f backend
 
 ```bash
 # Basic health check
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/health
 
 # Detailed health check (Admin only)
 curl -H "Authorization: Bearer <admin-jwt>" \
-  http://localhost:8000/api/v1/admin/system/health
+  http://localhost:8000/api/admin/system/health
 ```
 
 ## 🧪 Testing
@@ -392,7 +392,7 @@ Configure rate limits per tier in environment variables:
 ### Create WhatsApp Session
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/sessions \
+curl -X POST http://localhost:8000/api/sessions \
   -H "Authorization: Bearer <jwt-token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -404,7 +404,7 @@ curl -X POST http://localhost:8000/api/v1/sessions \
 ### Send Message
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/external/send \
+curl -X POST http://localhost:8000/api/external/send \
   -H "X-API-Key: <api-key>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -419,7 +419,7 @@ curl -X POST http://localhost:8000/api/v1/external/send \
 
 ```bash
 curl -H "X-API-Key: <api-key>" \
-  http://localhost:8000/api/v1/external/session/my-session-001/status
+  http://localhost:8000/api/external/session/my-session-001/status
 ```
 
 ## 🐛 Troubleshooting

@@ -16,7 +16,7 @@ import logger from "../utils/logger.js";
 
 /**
  * Handle session status updates from workers
- * Endpoint: POST /api/v1/webhooks/session-status
+ * Endpoint: POST /api/webhooks/session-status
  */
 const handleSessionStatus = asyncHandler(async (req, res) => {
   // Log the raw request first
@@ -114,7 +114,7 @@ const handleSessionStatus = asyncHandler(async (req, res) => {
 
 /**
  * Handle message status updates from workers
- * Endpoint: POST /api/v1/webhooks/message-status
+ * Endpoint: POST /api/webhooks/message-status
  */
 const handleMessageStatus = asyncHandler(async (req, res) => {
   const {
@@ -191,7 +191,7 @@ const handleMessageStatus = asyncHandler(async (req, res) => {
 
 /**
  * Handle worker heartbeat and metrics updates
- * Endpoint: POST /api/v1/webhooks/worker-heartbeat
+ * Endpoint: POST /api/webhooks/worker-heartbeat
  */
 const handleWorkerHeartbeat = asyncHandler(async (req, res) => {
   const {

@@ -1,7 +1,7 @@
 ### WhatsApp Gateway Backend - Webhook API Testing
 ### These endpoints are called by workers to report status updates
 
-@baseUrl = http://localhost:8000/api/v1
+@baseUrl = http://localhost:8000/api
 @workerToken = worker-secret-token-change-in-production
 @workerId = worker-001
 

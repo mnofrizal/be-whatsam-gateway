@@ -1084,6 +1084,82 @@ export class SessionService {
   }
 
   /**
+   * Manage message (delete, unsend, edit, star, unstar, reaction, read)
+   * @param {string} sessionId - Session ID
+   * @param {Object} messageData - Message management data object
+   * @returns {Object} Management result
+   */
+  async manageMessage(sessionId, messageData) {
+    try {
+      logger.info("Managing message through session", {
+        sessionId,
+        action: messageData.action,
+        messageId: messageData.messageId,
+        service: "SessionService",
+      });
+
+      // Get session and verify it's connected
+      const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        include: {
+          worker: {
+            select: {
+              id: true,
+              endpoint: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      if (!session) {
+        throw new NotFoundError("Session not found");
+      }
+
+      if (session.status !== "CONNECTED") {
+        throw new ConflictError(
+          `Session is not connected. Current status: ${session.status}`
+        );
+      }
+
+      if (!session.workerId || !session.worker) {
+        throw new ConnectivityError("No worker assigned to session");
+      }
+
+      if (session.worker.status !== "ONLINE") {
+        throw new ConnectivityError("Worker is not online");
+      }
+
+      // Send message management request through worker
+      const response = await ProxyService.manageMessage(
+        session.worker.endpoint,
+        sessionId,
+        messageData
+      );
+
+      logger.info("Message management completed successfully", {
+        sessionId,
+        action: messageData.action,
+        messageId: messageData.messageId,
+        workerId: session.workerId,
+        service: "SessionService",
+      });
+
+      // Extract only the data part from worker response to avoid double-wrapping
+      return response.data || response;
+    } catch (error) {
+      logger.error("Failed to manage message", {
+        sessionId,
+        action: messageData.action,
+        messageId: messageData.messageId,
+        error: error.message,
+        service: "SessionService",
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Generate session API key
    * @param {string} userId - User ID
    * @param {string} sessionId - Session ID

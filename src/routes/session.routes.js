@@ -21,14 +21,14 @@ const router = express.Router();
 // Apply JWT authentication to all session routes
 router.use(authenticateJWT);
 
-// GET /api/v1/sessions - List User Sessions
+// GET /api/sessions - List User Sessions
 router.get(
   "/",
   validateSessionFiltersMiddleware,
   SessionController.getSessions
 );
 
-// POST /api/v1/sessions - Create New Session
+// POST /api/sessions - Create New Session
 router.post(
   "/",
   sessionLimiter,
@@ -36,14 +36,14 @@ router.post(
   SessionController.createSession
 );
 
-// GET /api/v1/sessions/:id - Get Session Details
+// GET /api/sessions/:id - Get Session Details
 router.get(
   "/:id",
   validateSessionIdParamMiddleware,
   SessionController.getSessionById
 );
 
-// POST /api/v1/sessions/:id/connect - Connect Session (Phase 2)
+// POST /api/sessions/:id/connect - Connect Session (Phase 2)
 router.post(
   "/:id/connect",
   sessionLimiter,
@@ -51,14 +51,14 @@ router.post(
   SessionController.connectSession
 );
 
-// GET /api/v1/sessions/:id/status - Get Session Status
+// GET /api/sessions/:id/status - Get Session Status
 router.get(
   "/:id/status",
   validateSessionIdParamMiddleware,
   SessionController.getSessionStatus
 );
 
-// DELETE /api/v1/sessions/:id - Delete Session
+// DELETE /api/sessions/:id - Delete Session
 router.delete(
   "/:id",
   sessionLimiter,
@@ -66,7 +66,7 @@ router.delete(
   SessionController.deleteSession
 );
 
-// POST /api/v1/sessions/:id/send - Send Message
+// POST /api/sessions/:id/send - Send Message
 router.post(
   "/:id/send",
   createMessageLimiter,
@@ -74,14 +74,14 @@ router.post(
   SessionController.sendMessage
 );
 
-// GET /api/v1/sessions/:id/messages - Get Message History (Week 5)
+// GET /api/sessions/:id/messages - Get Message History (Week 5)
 router.get(
   "/:id/messages",
   validateMessageHistoryMiddleware,
   SessionController.getMessages
 );
 
-// POST /api/v1/sessions/:id/restart - Restart Session
+// POST /api/sessions/:id/restart - Restart Session
 router.post(
   "/:id/restart",
   sessionLimiter,
@@ -89,7 +89,7 @@ router.post(
   SessionController.restartSession
 );
 
-// POST /api/v1/sessions/:id/disconnect - Disconnect Session
+// POST /api/sessions/:id/disconnect - Disconnect Session
 router.post(
   "/:id/disconnect",
   sessionLimiter,
@@ -97,7 +97,7 @@ router.post(
   SessionController.disconnectSession
 );
 
-// POST /api/v1/sessions/:id/logout - Logout Session
+// POST /api/sessions/:id/logout - Logout Session
 router.post(
   "/:id/logout",
   sessionLimiter,

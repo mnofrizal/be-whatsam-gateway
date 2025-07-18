@@ -27,7 +27,7 @@ const normalizeWorkerId = (workerId) => {
 
 /**
  * Register a new worker (called by worker itself)
- * POST /api/v1/admin/workers/register
+ * POST /api/admin/workers/register
  */
 export const registerWorker = asyncHandler(async (req, res) => {
   const { workerId, endpoint, maxSessions, description, version, environment } =
@@ -77,7 +77,7 @@ export const registerWorker = asyncHandler(async (req, res) => {
 
 /**
  * Unregister worker (called by worker itself during shutdown)
- * DELETE /api/v1/workers/unregister
+ * DELETE /api/workers/unregister
  */
 export const unregisterWorker = asyncHandler(async (req, res) => {
   const { workerId, endpoint } = req.body;
@@ -112,7 +112,7 @@ export const unregisterWorker = asyncHandler(async (req, res) => {
 
 /**
  * Update worker heartbeat with enhanced session data (called by worker itself)
- * PUT /api/v1/admin/workers/:workerId/heartbeat
+ * PUT /api/admin/workers/:workerId/heartbeat
  *
  * Phase 2: Enhanced Push Heartbeat - supports rich session data:
  * {
@@ -192,7 +192,7 @@ export const updateHeartbeat = asyncHandler(async (req, res) => {
 
 /**
  * Get all workers (admin only)
- * GET /api/v1/admin/workers
+ * GET /api/admin/workers
  */
 export const getWorkers = asyncHandler(async (req, res) => {
   const { status, page = 1, limit = 20 } = req.query;
@@ -252,7 +252,7 @@ export const getWorkers = asyncHandler(async (req, res) => {
 
 /**
  * Get specific worker details (admin only)
- * GET /api/v1/admin/workers/:workerId
+ * GET /api/admin/workers/:workerId
  */
 export const getWorkerById = asyncHandler(async (req, res) => {
   const { workerId } = req.params;
@@ -299,7 +299,7 @@ export const getWorkerById = asyncHandler(async (req, res) => {
 
 /**
  * Add worker manually (admin only)
- * POST /api/v1/admin/workers
+ * POST /api/admin/workers
  */
 export const addWorker = asyncHandler(async (req, res) => {
   const { workerId, endpoint, maxSessions, description, version, environment } =
@@ -368,7 +368,7 @@ export const addWorker = asyncHandler(async (req, res) => {
 
 /**
  * Remove worker (admin only)
- * DELETE /api/v1/admin/workers/:workerId
+ * DELETE /api/admin/workers/:workerId
  */
 export const removeWorker = asyncHandler(async (req, res) => {
   const { workerId } = req.params;
@@ -400,7 +400,7 @@ export const removeWorker = asyncHandler(async (req, res) => {
 
 /**
  * Update worker configuration (admin only)
- * PUT /api/v1/workers/:workerId
+ * PUT /api/workers/:workerId
  */
 export const updateWorker = asyncHandler(async (req, res) => {
   const { workerId } = req.params;
@@ -438,7 +438,7 @@ export const updateWorker = asyncHandler(async (req, res) => {
 
 /**
  * Get worker statistics (admin only)
- * GET /api/v1/admin/workers/statistics
+ * GET /api/admin/workers/statistics
  */
 export const getWorkerStatistics = asyncHandler(async (req, res) => {
   const stats = await workerService.getWorkerStatistics();
@@ -467,7 +467,7 @@ export const getWorkerStatistics = asyncHandler(async (req, res) => {
 
 /**
  * Test worker connectivity (admin only)
- * POST /api/v1/admin/workers/test
+ * POST /api/admin/workers/test
  */
 export const testWorkerConnectivity = asyncHandler(async (req, res) => {
   const { endpoint } = req.body;
@@ -491,7 +491,7 @@ export const testWorkerConnectivity = asyncHandler(async (req, res) => {
 
 /**
  * Test specific worker connectivity (admin only)
- * POST /api/v1/admin/workers/:workerId/test
+ * POST /api/admin/workers/:workerId/test
  */
 export const testSpecificWorkerConnectivity = asyncHandler(async (req, res) => {
   const { workerId } = req.params;
@@ -531,7 +531,7 @@ export const testSpecificWorkerConnectivity = asyncHandler(async (req, res) => {
 
 /**
  * Trigger manual health check for all workers (admin only)
- * POST /api/v1/admin/workers/health-check
+ * POST /api/admin/workers/health-check
  */
 export const triggerHealthCheck = asyncHandler(async (req, res) => {
   const results = await workerService.performHealthChecks();
@@ -569,7 +569,7 @@ export const triggerHealthCheck = asyncHandler(async (req, res) => {
 
 /**
  * Get available worker for session assignment (internal use)
- * GET /api/v1/admin/workers/available
+ * GET /api/admin/workers/available
  */
 export const getAvailableWorker = asyncHandler(async (req, res) => {
   const worker = await workerService.getAvailableWorker();
@@ -610,7 +610,7 @@ export const getAvailableWorker = asyncHandler(async (req, res) => {
 
 /**
  * Start health monitoring (admin only)
- * POST /api/v1/admin/workers/health/start
+ * POST /api/admin/workers/health/start
  */
 export const startHealthMonitoring = asyncHandler(async (req, res) => {
   workerService.startHealthMonitoring();
@@ -636,7 +636,7 @@ export const startHealthMonitoring = asyncHandler(async (req, res) => {
 
 /**
  * Stop health monitoring (admin only)
- * POST /api/v1/admin/workers/health/stop
+ * POST /api/admin/workers/health/stop
  */
 export const stopHealthMonitoring = asyncHandler(async (req, res) => {
   workerService.stopHealthMonitoring();
@@ -662,7 +662,7 @@ export const stopHealthMonitoring = asyncHandler(async (req, res) => {
 
 /**
  * Get health monitoring status (admin only)
- * GET /api/v1/admin/workers/health/status
+ * GET /api/admin/workers/health/status
  */
 export const getHealthMonitoringStatus = asyncHandler(async (req, res) => {
   const isRunning = workerService.isHealthCheckRunning;
@@ -678,7 +678,7 @@ export const getHealthMonitoringStatus = asyncHandler(async (req, res) => {
 
 /**
  * Get assigned sessions for worker recovery
- * GET /api/v1/workers/:workerId/sessions/assigned
+ * GET /api/workers/:workerId/sessions/assigned
  */
 export const getAssignedSessions = asyncHandler(async (req, res) => {
   const { workerId } = req.params;
@@ -696,7 +696,7 @@ export const getAssignedSessions = asyncHandler(async (req, res) => {
 
 /**
  * Handle session recovery status from worker
- * POST /api/v1/workers/:workerId/sessions/recovery-status
+ * POST /api/workers/:workerId/sessions/recovery-status
  */
 export const handleRecoveryStatus = asyncHandler(async (req, res) => {
   const { workerId } = req.params;

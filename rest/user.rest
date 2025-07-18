@@ -1,8 +1,8 @@
 ### User Management API Tests
-### Base URL: http://localhost:8000/api/v1
+### Base URL: http://localhost:8000/api
 
 ### Variables
-@baseUrl = http://localhost:8000/api/v1
+@baseUrl = http://localhost:8000/api
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3MTQ0ZDUwMi1lNzIyLTRjYWEtYjBkYy1iYmEzYTQ1N2I3ZGEiLCJlbWFpbCI6ImFkbWluQHdoYXRzYXBwLWdhdGV3YXkuY29tIiwicm9sZSI6IkFETUlOSVNUUkFUT1IiLCJ0aWVyIjoiTUFYIiwiaWF0IjoxNzUxNzY3NjY0LCJleHAiOjE3NTIzNzI0NjQsImF1ZCI6IndoYXRzYXBwLWdhdGV3YXktdXNlcnMiLCJpc3MiOiJ3aGF0c2FwcC1nYXRld2F5LWJhY2tlbmQifQ.Y4QqFZE0-GUa7aQ6pvZOJTddoMjUZIn9a-XB145bkt8
 
 ### 1. Get User Profile
